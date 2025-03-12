@@ -3,9 +3,14 @@ import numpy as np
 import pandas as pd
 import io
 import zipfile
+import sys
 
 from sklearn.preprocessing import StandardScaler
 from src.pipeline.predict_pipeline import CustomData, PredictPipeline
+
+from src.exception import CustomException
+from src.logger import logging
+
 
 
 application = Flask(__name__)
@@ -27,14 +32,21 @@ def upload_csv():
             dataframes = []  # Store dataframes, each dataframe contains the contents of respective file, not the actual file
             filenames = []  # Store original filenames
 
-            if not uploaded_file or uploaded_file.filename == '': # Checking if file exists
-                return redirect(url_for("predict_from_csv"))
+            # if not uploaded_file or uploaded_file.filename == '': # Checking if file exists
+            #     return redirect(url_for("predict_from_csv"))
 
-            if not uploaded_file.filename.endswith('.csv'): # Checking if file is a CSV
-                return redirect(url_for("predict_from_csv"))
+            # if not uploaded_file.filename.endswith('.csv'): # Checking if file is a CSV
+            #     return redirect(url_for("predict_from_csv"))
 
-            df = pd.read_csv(uploaded_file)  # Read the uploaded CSV
+            # df = pd.read_csv(uploaded_file)  # Read the uploaded CSV
             for files in uploaded_file:
+
+                if not files or files.filename == '': # Checking if file exists
+                    return redirect(url_for("predict_from_csv"))
+
+                if not files.filename.endswith('.csv'): # Checking if file is a CSV
+                    return redirect(url_for("predict_from_csv"))
+                
                 df = pd.read_csv(files)
                 dataframes.append(df)
                 filenames.append(files.filename)
@@ -49,7 +61,7 @@ def upload_csv():
                 output = io.BytesIO()
                 predictions_list[0].to_csv(output, index=False)
                 output.seek(0)
-                return send_file(output, as_attachment=True, download_name="predicted_results.csv") #Return one single file
+                return send_file(output, as_attachment=True, attachment_filename="predicted_results.csv") #Return one single file
                 # send_file returns file-like objects ByteIO
                 # FRONTEND recieves a downloadable file
 
@@ -67,7 +79,7 @@ def upload_csv():
 
 
     except Exception as e:
-        flash(str(e), "error")
+        raise CustomException(e,sys)
         return redirect(url_for("predict_from_csv"))
 
     return render_template('csv_file.html')
