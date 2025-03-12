@@ -1,0 +1,67 @@
+<html>
+    <body>
+        <div class="login">
+            <h1>Employee Retention Predictor</h1>
+        
+            <form action="{{ url_for('predict_datapoint')}}" method="post">
+                <h1>
+                    <legend>Employee Retention Predictor</legend>
+                </h1>
+                
+                <div class="form-group">
+                    <label for="satisfaction_level">satisfaction_level:</label>
+                    <input type="number" id="satisfaction_level" name="satisfaction_level" placeholder="Enter satisfaction_level (0-1)" step="any" required>
+                </div>
+            
+                <div class="form-group">
+                    <label for="last_evaluation">last_evaluation:</label>
+                    <input type="number" id="last_evaluation" name="last_evaluation" placeholder="Enter last_evaluation (0-1)" step="any" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="number_project">number_project:</label>
+                    <input type="number" id="number_project" name="number_project" placeholder="Enter number of projects" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="average_montly_hours">average_montly_hours:</label>
+                    <input type="number" id="average_montly_hours" name="average_montly_hours" placeholder="Enter average monthly hours" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="time_spend_company">time_spend_company:</label>
+                    <input type="number" id="time_spend_company" name="time_spend_company" placeholder="Enter time spent at the company" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="Work_accident">Work_accident (0 or 1):</label>
+                    <input type="number" id="Work_accident" name="Work_accident" placeholder="0 or 1" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="promotion_last_5years">promotion_last_5years (0 or 1):</label>
+                    <input type="number" id="promotion_last_5years" name="promotion_last_5years" placeholder="0 or 1" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="department">Department:</label>
+                    <input type="text" id="department" name="department" placeholder="Enter department (e.g., sales, marketing)" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="salary">salary (low, medium, high):</label>
+                    <input type="text" id="salary" name="salary" placeholder="Enter salary (low, medium, high)" required>
+                </div>
+
+                
+                <div class="mb-3">
+                    <input class="btn btn-primary" type="submit" value="Predict Employee Retention"  />
+                </div>
+                
+            </form>
+        </div>    
+        <h2>
+            The Likelihood of this Employee leaving the company is {{ "%.2f"|format(results * 100) }}%
+        </h2>
+    </body>
+</html>
