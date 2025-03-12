@@ -32,13 +32,6 @@ def upload_csv():
             dataframes = []  # Store dataframes, each dataframe contains the contents of respective file, not the actual file
             filenames = []  # Store original filenames
 
-            # if not uploaded_file or uploaded_file.filename == '': # Checking if file exists
-            #     return redirect(url_for("predict_from_csv"))
-
-            # if not uploaded_file.filename.endswith('.csv'): # Checking if file is a CSV
-            #     return redirect(url_for("predict_from_csv"))
-
-            # df = pd.read_csv(uploaded_file)  # Read the uploaded CSV
             for files in uploaded_file:
 
                 if not files or files.filename == '': # Checking if file exists
@@ -54,7 +47,7 @@ def upload_csv():
             predict_pipeline = PredictPipeline()
             
             predictions = []  # Replace  with `predict_pipeline.predict_from_csv(df)
-            predictions_list = predict_pipeline.predict_from_csv(dataframes) #dataframe with added new col, which we later save as csv and return to user
+            predictions_list, t_rate = predict_pipeline.predict_from_csv(dataframes) #pred_list is list dataframe with added new col, which we later save as csv and return to user
 
             if len(predictions_list) == 1:
             # If only one file, return a single CSV
@@ -66,16 +59,16 @@ def upload_csv():
                 # FRONTEND recieves a downloadable file
 
             # If multiple files, return a ZIP archive
-            # zip_buffer = io.BytesIO()
-            # with zipfile.ZipFile(zip_buffer, 'w') as zip_file:
-            #     for df, filename in zip(predictions_list, filenames):
-            #         file_buffer = io.BytesIO()
-            #         df.to_csv(file_buffer, index=False)
-            #         file_buffer.seek(0) #Moving file pointer to position 0
-            #         zip_file.writestr(f"predicted_{filename}", file_buffer.getvalue())
+            zip_buffer = io.BytesIO()
+            with zipfile.ZipFile(zip_buffer, 'w') as zip_file:
+                for df, filename in zip(predictions_list, filenames):
+                    file_buffer = io.BytesIO()
+                    df.to_csv(file_buffer, index=False)
+                    file_buffer.seek(0) #Moving file pointer to position 0
+                    zip_file.writestr(f"predicted_{filename}", file_buffer.getvalue())
 
-            # zip_buffer.seek(0)
-            # return send_file(zip_buffer, as_attachment=True, download_name="predicted_results.zip") #Return zip if user uploads multiple files
+            zip_buffer.seek(0)
+            return send_file(zip_buffer, as_attachment=True, attachment_filename="predicted_results.zip") #Return zip if user uploads multiple files
 
 
     except Exception as e:

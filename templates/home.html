@@ -63,5 +63,10 @@
         <h2>
             The Likelihood of this Employee leaving the company is {{ "%.2f"|format(results * 100) }}%
         </h2>
+
+        <!-- Button to go to CSV upload page -->
+        <form action="{{ url_for('upload_csv') }}" method="get">
+            <button type="submit">Predict from CSV</button>
+        </form>
     </body>
 </html>
