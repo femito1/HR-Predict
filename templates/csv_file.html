@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Upload CSV for Prediction</title>
+</head>
+<body>
+
+    <h2>Upload a CSV File for Prediction</h2>
+
+    <form action="/predict_from_csv" method="post" enctype="multipart/form-data">
+        <input type="file" name="csv_file" accept=".csv" multiple required>
+        <button type="submit">Upload & Predict</button>
+    </form>
+
+</body>
+</html>
