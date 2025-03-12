@@ -1,0 +1,11 @@
+pandas
+numpy
+seaborn
+torch
+xgboost
+sklearn
+pickle
+ipykernel
+flask
+
+-e .
