@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block title %}Multiple Employees Turnover Rate Prediction{% endblock %}
+
+{% block content %}
+<h1 class="title">Multiple Employees Turnover Rate Prediction</h1>
+<hr class="header-line">
+<div class="multiple-employees-container">
+    <!-- Loading Spinner -->
+    <div id="loading-spinner" style="display: none;">
+        <div class="spinner"></div>
+        <p>Loading... Please wait.</p>
+    </div>
+
+    <!-- Display Errors -->
+    {% if error %}
+    <div class="error-message">
+        <p>{{ error }}</p>
+    </div>
+    {% endif %}
+
+    <p class="description">
+        Enter employee data to analyze potential turnover rate.<br>
+        Upload a file that includes multiple employees' details.<br>
+        Make sure that all attribute columns are present and filled in correctly.
+    </p>
+
+    <form action="/predict_from_csv" method="POST" enctype="multipart/form-data" class="upload-form" id="upload-form"
+        onsubmit="showLoadingSpinner()">
+        <div class="file-upload" id="file-upload">
+            <label for="csv_file">Select file(s) to upload or drag and drop</label>
+            <input type="file" id="csv_file" name="csv_file" accept=".csv" multiple required>
+            <small>Supported file types: CSV (Max 5 files)</small>
+        </div>
+
+        <div id="selected-files" class="selected-files">
+            {% if filenames %}
+            {% for filename in filenames %}
+            <p>File selected: <strong>{{ filename }}</strong></p>
+            {% endfor %}
+            <a href="#" onclick="document.getElementById('csv_file').click();">Change files</a>
+            {% endif %}
+        </div>
+
+        <button type="submit" class="predict-button">Predict Turnover Rate</button>
+    </form>
+
+    {% if turnover_rates is defined %}
+    <div class="prediction-result">
+        <h2>Prediction Results</h2>
+        {% for filename, turnover_rate in turnover_rates.items() %}
+        <div class="prediction-result">
+            <p>Turnover rate for <strong>{{ filename }}</strong>: </p>
+            <p
+                class="prediction-percentage {% if turnover_rate <= 33 %}low-risk{% elif turnover_rate <= 66 %}medium-risk{% else %}high-risk{% endif %}">
+                <strong>{{ "%.2f"|format(turnover_rate) }}%</strong>
+            </p>
+            <div class="action-buttons">
+                <button id="toggle-button-{{ filename }}" onclick="showTableWithSpinner('{{ filename }}')"
+                    class="show-table-button">Show Table</button>
+                <a href="/download_csv?filename={{ filename }}" class="download-button">Download CSV</a>
+            </div>
+            <div id="table-{{ filename }}" class="review-table" style="display: none;">
+                <h3>Review Table for {{ filename }}</h3>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Satisfaction Level</th>
+                                <th>Last Evaluation</th>
+                                <th>Number of Projects</th>
+                                <th>Average Monthly Hours</th>
+                                <th>Years Spent in Company</th>
+                                <th>Work Accident</th>
+                                <th>Promoted in Last 5 Years</th>
+                                <th>Department</th>
+                                <th>Salary</th>
+                                <th>Probability</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in predictions[filename] %}
+                            <tr>
+                                <td>{{ "%.2f"|format(row.satisfaction_level) }}</td>
+                                <td>{{ "%.2f"|format(row.last_evaluation) }}</td>
+                                <td>{{ row.number_project }}</td>
+                                <td>{{ row.average_montly_hours }}</td>
+                                <td>{{ row.time_spend_company }}</td>
+                                <td>{{ row.Work_accident }}</td>
+                                <td>{{ row.promotion_last_5years }}</td>
+                                <td>{{ row.department }}</td>
+                                <td>{{ row.salary }}</td>
+                                <td>{{ "%.2f"|format(row.probability * 100) }}%</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    function showLoadingSpinner() {
+        document.getElementById('loading-spinner').style.display = 'block';
+    }
+
+    function hideLoadingSpinner() {
+        document.getElementById('loading-spinner').style.display = 'none';
+    }
+
+    function showTableWithSpinner(filename) {
+        showLoadingSpinner(); // Show the spinner
+        setTimeout(() => {
+            toggleTable(filename);
+            hideLoadingSpinner();
+        }, 500);
+    }
+
+    function toggleTable(filename) {
+        const table = document.getElementById(`table-${filename}`);
+        const button = document.getElementById(`toggle-button-${filename}`);
+
+        if (table.style.display === 'none') {
+            table.style.display = 'block';
+            button.textContent = 'Hide Table';
+        } else {
+            table.style.display = 'none';
+            button.textContent = 'Show Table';
+        }
+    }
+
+    const fileUpload = document.getElementById('file-upload');
+    const fileInput = document.getElementById('csv_file');
+
+    fileUpload.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        fileUpload.classList.add('dragover');
+    });
+
+    fileUpload.addEventListener('dragleave', () => {
+        fileUpload.classList.remove('dragover');
+    });
+
+    fileUpload.addEventListener('drop', (e) => {
+        e.preventDefault();
+        fileUpload.classList.remove('dragover');
+        fileInput.files = e.dataTransfer.files;
+        updateSelectedFiles();
+    });
+
+    fileInput.addEventListener('change', () => {
+        updateSelectedFiles();
+    });
+
+    function updateSelectedFiles() {
+        const selectedFiles = document.getElementById('selected-files');
+        selectedFiles.innerHTML = '';
+
+        if (fileInput.files.length > 0) {
+            for (let i = 0; i < fileInput.files.length; i++) {
+                selectedFiles.innerHTML += `<p>File selected: <strong>${fileInput.files[i].name}</strong></p>`;
+            }
+            selectedFiles.innerHTML += `<a href="#" onclick="document.getElementById('csv_file').click();">Change files</a>`;
+        }
+    }
+</script>
+
+{% endblock %}
