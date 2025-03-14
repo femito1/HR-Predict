@@ -148,7 +148,10 @@
             <div class="prediction-result">
                 <h2>Prediction Result</h2>
 
-                <p>Based on the values reported, the likelihood of the employee leaving the company is: <strong>{{ "%.2f"|format(results[0] * 100) }}% </strong>.</p>
+                <p>Based on the values reported, the likelihood of the employee leaving the company is:</p>
+                <p class="prediction-percentage {% if results[0] * 100 <= 33 %}low-risk{% elif results[0] * 100 <= 66 %}medium-risk{% else %}high-risk{% endif %}">
+                    <strong>{{ "%.2f"|format(results[0] * 100) }}%</strong>
+                </p>
                 <a href="/single-employee" class="new-prediction-button">New Prediction</a>
             </div>
         {% endif %}

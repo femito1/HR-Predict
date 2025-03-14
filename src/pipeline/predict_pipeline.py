@@ -29,11 +29,6 @@ class PredictPipeline:
             # preprocessor = load_object(file_path=preprocesor_path)
 
             ohe_feature_names = load_object("artifacts/ohe_feature_names.pkl")  # Expected OHE columns
-            scaler_stats = load_object("artifacts/scaler_stats.pkl")  # Mean & scale
-
-            scaler = StandardScaler()
-            scaler.mean_ = scaler_stats["mean"]
-            scaler.scale_ = scaler_stats["scale"]
 
             num_features = ["satisfaction_level", "last_evaluation", "number_project",
                             "average_montly_hours", "time_spend_company", "Work_accident", "promotion_last_5years"]
@@ -50,20 +45,14 @@ class PredictPipeline:
             # Reorder columns to match training
             ohe_df = ohe_df[ohe_feature_names]
 
-            # Step 2: Standard Scaling
-            # features[num_features] = scaler.transform(features[num_features])
-
-            # Step 3: Combine numerical & encoded categorical data
             features_processed = pd.concat([features[num_features], ohe_df], axis=1)
 
-            # Step 4: Ensure correct column order (XGBoost needs exact same order)
             missing_cols = set(model.feature_names) - set(features_processed.columns)
             for col in missing_cols:
                 features_processed[col] = 0  # Add missing columns
 
             features_processed = features_processed[model.feature_names]
 
-            # Step 5: Predict using XGBoost
             predictions = model.predict(xgb.DMatrix(features_processed, feature_names = model.feature_names))
 
             return predictions
@@ -86,9 +75,6 @@ class PredictPipeline:
         
         model_path = 'artifacts/xgb_model2.pkl'
         xgb_model = load_object(file_path=model_path)
-        
-        # file = StringIO(csv)
-        # df = pd.read_csv(file)
 
         storage_t_rate =  []
         storage_df = []
@@ -155,12 +141,6 @@ class PredictPipeline:
             print(f"Predicted turnover rate: {turnover_rate:.2f}%")
             print(f"Number of employees predicted to leave: {predictions.sum()} out of {len(predictions)}")
             
-            # return {
-            #     'dataframe': df,
-            #     'turnover_rate': turnover_rate,
-            #     'employees_leaving': int(predictions.sum()),
-            #     'total_employees': len(predictions)
-            # }
             storage_df.append(df)
             storage_t_rate.append(turnover_rate)
 
@@ -171,8 +151,6 @@ class CustomData:
     def __init__(self, satisfaction_level, last_evaluation, number_project, average_montly_hours, 
                  time_spend_company, Work_accident, promotion_last_5years, department, salary):
         
-        # THESE VALUES ARE COMING FROM WEB APPLICATION
-        # NEED TO BE SAME AS WHAT IS USED IN THE .HTML FORM name="feat1"...
         self.satisfaction_level = float(satisfaction_level)
         self.last_evaluation = float(last_evaluation)
         self.number_project = int(number_project)
@@ -184,8 +162,6 @@ class CustomData:
         self.salary = str(salary)
 
     def get_data_as_dataframe(self):
-        #   This will just return all data as a DATAFRAME
-        #   self means whatever we have from the webapp in that moment is being mapped to df values/features
         try:
             custom_data_as_input_dict = {
                 "satisfaction_level": [self.satisfaction_level],

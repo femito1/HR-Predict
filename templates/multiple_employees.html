@@ -25,7 +25,8 @@
         Make sure that all attribute columns are present and filled in correctly.
     </p>
 
-    <form action="/predict_from_csv" method="POST" enctype="multipart/form-data" class="upload-form" id="upload-form" onsubmit="showLoadingSpinner()">
+    <form action="/predict_from_csv" method="POST" enctype="multipart/form-data" class="upload-form" id="upload-form"
+        onsubmit="showLoadingSpinner()">
         <div class="file-upload" id="file-upload">
             <label for="csv_file">Select file(s) to upload or drag and drop</label>
             <input type="file" id="csv_file" name="csv_file" accept=".csv" multiple required>
@@ -34,10 +35,10 @@
 
         <div id="selected-files" class="selected-files">
             {% if filenames %}
-                {% for filename in filenames %}
-                    <p>File selected: <strong>{{ filename }}</strong></p>
-                {% endfor %}
-                <a href="#" onclick="document.getElementById('csv_file').click();">Change files</a>
+            {% for filename in filenames %}
+            <p>File selected: <strong>{{ filename }}</strong></p>
+            {% endfor %}
+            <a href="#" onclick="document.getElementById('csv_file').click();">Change files</a>
             {% endif %}
         </div>
 
@@ -48,11 +49,15 @@
     <div class="prediction-result">
         <h2>Prediction Results</h2>
         {% for filename, turnover_rate in turnover_rates.items() %}
-        <div class="file-result">
-            <p>Turnover rate for <strong>{{ filename }}</strong>: <strong>{{ "%.2f"|format(turnover_rate) }}%</strong>
+        <div class="prediction-result">
+            <p>Turnover rate for <strong>{{ filename }}</strong>: </p>
+            <p
+                class="prediction-percentage {% if turnover_rate <= 33 %}low-risk{% elif turnover_rate <= 66 %}medium-risk{% else %}high-risk{% endif %}">
+                <strong>{{ "%.2f"|format(turnover_rate) }}%</strong>
             </p>
             <div class="action-buttons">
-                <button id="toggle-button-{{ filename }}" onclick="showTableWithSpinner('{{ filename }}')" class="show-table-button">Show Table</button>
+                <button id="toggle-button-{{ filename }}" onclick="showTableWithSpinner('{{ filename }}')"
+                    class="show-table-button">Show Table</button>
                 <a href="/download_csv?filename={{ filename }}" class="download-button">Download CSV</a>
             </div>
             <div id="table-{{ filename }}" class="review-table" style="display: none;">
@@ -112,7 +117,7 @@
         setTimeout(() => {
             toggleTable(filename);
             hideLoadingSpinner();
-        }, 500); 
+        }, 500);
     }
 
     function toggleTable(filename) {
@@ -142,13 +147,13 @@
 
     fileUpload.addEventListener('drop', (e) => {
         e.preventDefault();
-        fileUpload.classList.remove('dragover'); 
-        fileInput.files = e.dataTransfer.files; 
-        updateSelectedFiles(); 
+        fileUpload.classList.remove('dragover');
+        fileInput.files = e.dataTransfer.files;
+        updateSelectedFiles();
     });
 
     fileInput.addEventListener('change', () => {
-        updateSelectedFiles(); 
+        updateSelectedFiles();
     });
 
     function updateSelectedFiles() {

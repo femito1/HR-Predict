@@ -17,11 +17,6 @@ import os
 
 from src.utils import save_object
 
-
-# satisfaction_level,last_evaluation,number_project,average_montly_hours,time_spend_company,Work_accident,left,promotion_last_5years,sales,salary
-
-
-# TRAIN, TEST DATA (PATHS) ARE THE TWO THINGS AS INPUT PARAMETERS TO THIS FILE/MAINFUNC
 @dataclass
 class DataTransformationConfig:
     preprocessor_obj_file_path=os.path.join('artifacts',"preprocessor.pkl")
@@ -67,19 +62,6 @@ class DataTransformation:
             # Save feature names from OHE
             ohe_feature_names = ohe.get_feature_names_out(categorical_columns).tolist()
 
-            # Step 2: Standard Scaling for Numerical Features
-            scaler = StandardScaler()
-            X_num = scaler.fit_transform(train_df[numerical_columns])
-
-            # Save scaler stats
-            scaler_stats = {
-                "mean": scaler.mean_,
-                "scale": scaler.scale_
-            }
-
-            # Step 3: Save preprocessing info pickle.dump(obj, file_obj)
-            # pickle.dump(ohe_feature_names, "ohe_feature_names.pkl")  # Save feature names
-            # pickle.dump(scaler_stats, "scaler_stats.pkl")  # Save mean & scale
 
             path_features = os.path.join('artifacts',"ohe_feature_names.pkl")
             save_object(
@@ -87,31 +69,6 @@ class DataTransformation:
                 obj=ohe_feature_names
                 )
             
-            stats_path = os.path.join('artifacts',"scaler_stats.pkl")
-            save_object(
-                file_path=stats_path,
-                obj=scaler_stats
-                )
-
-            # logging.info("Read train and test data completed")
-
-            # logging.info("Obtaining preprocessing object")
-
-            # preprocessing_obj=self.get_data_transformer_object()
-
-            # # Check if the required columns exist in the dataframe
-            # # required_columns = ["satisfaction_level", "last_evaluation", "number_project", "average_montly_hours", "time_spend_company", "Work_accident", "promotion_last_5years", "sales", "salary"]
-            # # missing_columns = [col for col in required_columns if col not in train_df.columns]
-            # # if missing_columns:
-            # #     logging.error(f"Missing columns in the train data: {missing_columns}")
-            # #     raise CustomException(f"Missing columns: {missing_columns}", sys)
-        
-
-            # target_column_name="left"
-            # drop_columns = [target_column_name,'id']
-
-            
-
             logging.info("Obtaining preprocessing object")
             preprocessing_obj = self.get_data_transformer_object()      
 
@@ -119,27 +76,6 @@ class DataTransformation:
             logging.info(
                 f"Applying preprocessing object on training dataframe and testing dataframe."
             )
-
-            # HERE I NEED TO USE PREPROCESSOR OBJ ON USER INPUT INSTEAD OF TRAIN/TEST DATA
-
-            # Ensure the column name matches what the model expects
-            # input_feature_train_df.rename(columns={"sales": "department"}, inplace=True)
-
-
-            # StandardScaler is learning the mean & std dev of our dataset to be able to scale/transform() the test_data/user-input
-            # input_feature_train_arr=preprocessing_obj.fit_transform(input_feature_train_df)
-
-
-            
-
-            # Combining train_data and a separate 1D-array to feed the model for TRAINING 
-            # train_arr = np.c_[
-            #     input_feature_train_arr, np.array(target_feature_train_df)
-            # ]
-
-
-            # Combining train_data and a separate 1D-array to feed the model for TRAINING 
-            # test_arr = np.c_[input_feature_test_arr, np.array(target_feature_test_df)]
 
             logging.info(f"Saved preprocessing object.")
 
