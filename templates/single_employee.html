@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}Single Employee Retention Prediction{% endblock %}
+
+{% block content %}
+    <h1 class="title">Single Employee Retention Prediction</h1>
+    <hr class="header-line"> 
+    <div class="single-employee-container">
+
+        {% if not results %}
+        <p class="description">Enter employee data to analyze retention risk</p>
+        {% else %}
+        <p class="description">Entered employee data</p>
+        {% endif %}
+        <!-- Form for Single Employee Prediction -->
+        <form action="/predict-single" method="POST" class="form-container">
+            <!-- First Row -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="department">Department</label>
+                    {% if not results %}
+                        <select id="department" name="department" required>
+                            <option value="">Select</option>
+                            <option value="sales">Sales</option>
+                            <option value="accounting">Accounting</option>
+                            <option value="hr">HR</option>
+                            <option value="technical">Technical</option>
+                            <option value="support">Support</option>
+                            <option value="management">Management</option>
+                            <option value="IT">IT</option>
+                            <option value="product_mng">Product Management</option>
+                            <option value="marketing">Marketing</option>
+                            <option value="RandD">Research and Development</option>
+                        </select>
+                    {% else %}
+                        <input type="text" value="{{ request.form.department }}" readonly>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="salary">Salary</label>
+                    {% if not results %}
+                        <select id="salary" name="salary" required>
+                            <option value="">Select</option>
+                            <option value="low">Low</option>
+                            <option value="medium">Medium</option>
+                            <option value="high">High</option>
+                        </select>
+                    {% else %}
+                        <input type="text" value="{{ request.form.salary }}" readonly>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Second Row -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="satisfaction_level">Satisfaction Level</label>
+                    {% if not results %}
+                        <input type="number" id="satisfaction_level" name="satisfaction_level" step="0.01" min="0" max="1" required>
+                    {% else %}
+                        <input type="text" value="{{ request.form.satisfaction_level }}" readonly>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="last_evaluation">Latest Evaluation Score</label>
+                    {% if not results %}
+                        <input type="number" id="last_evaluation" name="last_evaluation" step="0.01" min="0" max="1" required>
+                    {% else %}
+                        <input type="text" value="{{ request.form.last_evaluation }}" readonly>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Third Row -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="number_project">Number of Projects</label>
+                    {% if not results %}
+                        <input type="number" id="number_project" name="number_project" min="0" required>
+                    {% else %}
+                        <input type="text" value="{{ request.form.number_project }}" readonly>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="average_montly_hours">Average Monthly Hours</label>
+                    {% if not results %}
+                        <input type="number" id="average_montly_hours" name="average_montly_hours" min="0" required>
+                    {% else %}
+                        <input type="text" value="{{ request.form.average_montly_hours }}" readonly>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Fourth Row -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Promoted in Last 5 Years</label>
+                    {% if not results %}
+                        <div class="button-group">
+                            <input type="radio" id="promotion_yes" name="promotion_last_5years" value="1" required hidden>
+                            <label for="promotion_yes" class="toggle-button">Yes</label>
+
+                            <input type="radio" id="promotion_no" name="promotion_last_5years" value="0" required hidden>
+                            <label for="promotion_no" class="toggle-button">No</label>
+                        </div>
+                    {% else %}
+                        <input type="text" value="{{ 'Yes' if request.form.promotion_last_5years == '1' else 'No' }}" readonly>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label>Work Accident Occurred</label>
+                    {% if not results %}
+                        <div class="button-group">
+                            <input type="radio" id="work_accident_yes" name="Work_accident" value="1" required hidden>
+                            <label for="work_accident_yes" class="toggle-button">Yes</label>
+
+                            <input type="radio" id="work_accident_no" name="Work_accident" value="0" required hidden>
+                            <label for="work_accident_no" class="toggle-button">No</label>
+                        </div>
+                    {% else %}
+                        <input type="text" value="{{ 'Yes' if request.form.Work_accident == '1' else 'No' }}" readonly>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Fifth Row -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="time_spend_company">Years Spent in Company</label>
+                    {% if not results %}
+                        <input type="number" id="time_spend_company" name="time_spend_company" min="0" required>
+                    {% else %}
+                        <input type="text" value="{{ request.form.time_spend_company }}" readonly>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if not results %}
+                <button type="submit" class="predict-button">Predict Retention</button>
+            {% endif %}
+        </form>
+
+        {% if results %}
+            <div class="prediction-result">
+                <h2>Prediction Result</h2>
+
+                <p>Based on the values reported, the likelihood of the employee leaving the company is: <strong>{{ "%.2f"|format(results[0] * 100) }}% </strong>.</p>
+                <a href="/single-employee" class="new-prediction-button">New Prediction</a>
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}

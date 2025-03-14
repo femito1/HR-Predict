@@ -1,3 +1,30 @@
-<h1>
-    Welcome to Employee Retention Prediction
-</h1>
+{% extends "base.html" %}
+
+{% block content %}
+    <h1 class="title">Home</h1>
+    <hr class="header-line"> 
+    <div class="home-container">
+        <h2>Welcome to hrPredict!</h2>
+        <p class="description">
+            Make accurate predictions on how likely an employee is to leave the company by leveraging historical employee data.
+        </p>
+            
+        <p class="description">
+            Use Single Employee mode to manually enter employee details and receive the individual’s likelihood to leave.
+        </p>
+        <p class="description">
+            Use Multiple Employees mode to conveniently upload data of multiple employees as a CSV file and receive a prediction of the turnover rate for the entered group of employees.
+        </p>
+
+        <div class="button-container">
+            <a href="/single-employee" class="prediction-button single">
+                <img src="{{ url_for('static', filename='img/logo_smaller.svg') }}" alt="Single Employee" class="button-icon">
+                <span class="button-text">Single Employee Prediction</span>
+            </a>
+            <a href="/multiple-employees" class="prediction-button multiple">
+                <img src="{{ url_for('static', filename='img/logo_smaller.svg') }}" alt="Multiple Employees" class="button-icon">
+                <span class="button-text">Multiple Employees Prediction</span>
+            </a>
+        </div>
+    </div>
+{% endblock %}
