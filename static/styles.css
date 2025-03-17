@@ -190,6 +190,13 @@ nav ul li a .icon {
     color: #555;
 }
 
+.error-message {
+    color: red;
+    font-size: 0.9em;
+    margin-top: 5px;
+    display: block;
+}
+
 /* Form Container */
 .form-container {
     width: 90%;
