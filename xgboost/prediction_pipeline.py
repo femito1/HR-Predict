@@ -88,3 +88,4 @@ def predict_attrition_from_csv(csv, model_path='xgboost/xgboost_hr_attrition_mod
         'employees_leaving': int(predictions.sum()),
         'total_employees': len(predictions)
     }
+

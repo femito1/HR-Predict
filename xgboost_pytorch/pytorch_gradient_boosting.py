@@ -805,69 +805,22 @@ class PyTorchGradientBoosting:
             plt.tight_layout()
             plt.show()
     
-    def suggest_improvements(self, X, sample_idx=0, feature_names=None, 
-                           actionable_features=None, top_n=3, threshold=0.5):
-        """
-        Suggest changes to decrease probability of employee leaving
-        """
-        # Extract single sample if X contains multiple samples
-        if len(X.shape) > 1 and X.shape[0] > 1:
-            x_single = X[sample_idx:sample_idx+1]
-        else:
-            x_single = X
-            
-        # Check current prediction
-        current_prob = self.predict_proba(x_single).item()
-        
-        # If already below threshold, no need for suggestions
-        if current_prob <= threshold:
-            return {
-                'current_probability': current_prob,
-                'status': 'Already below threshold',
-                'suggestions': []
-            }
-        
-        # Compute explanation
-        explanation = self.explain_prediction(x_single, sample_idx=0, 
-                                            feature_names=feature_names, 
-                                            plot=False)
-        
-        # Determine which features are actionable
-        if actionable_features is None:
-            # If not specified, consider all features as potentially actionable
-            actionable_features = feature_names if feature_names else [f"Feature {i}" for i in range(x_single.shape[1])]
-        
-        # Filter for actionable features with positive contribution to leaving probability
-        actionable_impacts = [
-            impact for impact in explanation['feature_impacts']
-            if impact['feature'] in actionable_features and impact['shap_value'] > 0
-        ]
-        
-        # Sort by impact
-        actionable_impacts.sort(key=lambda x: x['shap_value'], reverse=True)
-        
-        # Generate suggestions for top N actionable features
+    def suggest_improvements(self, employee: pd.DataFrame):
+        means = {'satisfaction_level': 0.4400980117614114,
+                'last_evaluation': 0.7181125735088211,
+                'average_montly_hours': 207.41921030523662}
         suggestions = []
-        for impact in actionable_impacts[:top_n]:
-            feature = impact['feature']
-            current_value = impact['value']
-            shap_value = impact['shap_value']
-            
-            # Don't try to predict direction - rely on the what-if analysis instead
-            suggestions.append({
-                'feature': feature,
-                'current_value': current_value,
-                'impact': shap_value,
-                'suggestion': f"Consider modifying '{feature}' (current value: {current_value:.2f})",
-                'recommendation': "Use what-if analysis to determine the optimal adjustment"
-            })
-        
-        return {
-            'current_probability': current_prob,
-            'target_threshold': threshold,
-            'suggestions': suggestions,
-            'note': "Use plot_what_if() for each feature to determine the best direction and magnitude of change"
-        }
+
+
+        employee_features = dict(zip(employee[['satisfaction_level', 'last_evaluation', 'average_montly_hours']].columns.tolist(), *employee[['satisfaction_level', 'last_evaluation', 'average_montly_hours']].values.tolist()))
+        employee = employee.to_numpy()
+        if employee_features['satisfaction_level'] < means['satisfaction_level']:
+            suggestions.append('It seems that this employee is not satisfied with their job, as their satisfaction level is lower than expected. We recommend that HR and managers should talk to them to improve their situation.')
+        if employee_features['last_evaluation'] > means['last_evaluation']:
+            suggestions.append('This employee is performing very well. We have found that when employees have a very high last evaluation score, they are more likely to leave the company. We recommend that they get rewarded for their performance.')
+        if employee_features['average_montly_hours'] > means['average_montly_hours']:
+            suggestions.append('This employee is working a lot of hours. Work-life balance is important for employee retention, a few less hours a month could help them to be happier at work. Reconsidering your current resource planning and expanding your current workforce could be a good idea.')
+        return suggestions
     
     def plot_what_if(self, X, feature_index, feature_name=None, range_min=None, 
                     range_max=None, num_points=20, sample_idx=0):
