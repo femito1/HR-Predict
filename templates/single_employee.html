@@ -19,6 +19,15 @@
     </div>
     {% endif %}
 
+    <!-- Display missing field errors -->
+    {% if errors %}
+    <div class="error-message">
+        {% for field, message in errors.items() %}
+        <p>{{ message }}</p>
+        {% endfor %}
+    </div>
+    {% endif %}
+
     <form action="/predict-single" method="POST" class="form-container">
         <!-- First Row -->
         <div class="form-row">
@@ -46,6 +55,9 @@
                     <option value="RandD" {% if form_data and form_data.department=='RandD' %}selected{% endif %}>
                         Research and Development</option>
                 </select>
+                {% if errors and errors.department %}
+                <span class="error-message">{{ errors.department }}</span>
+                {% endif %}
                 {% else %}
                 <input type="text" value="{{ request.form.department }}" readonly>
                 {% endif %}
@@ -62,6 +74,9 @@
                     <option value="high" {% if form_data and form_data.salary=='high' %}selected{% endif %}>High
                     </option>
                 </select>
+                {% if errors and errors.salary %}
+                <span class="error-message">{{ errors.salary }}</span>
+                {% endif %}
                 {% else %}
                 <input type="text" value="{{ request.form.salary }}" readonly>
                 {% endif %}
@@ -131,41 +146,41 @@
             <div class="form-group">
                 <label>Promoted in Last 5 Years</label>
                 {% if not results %}
-                    <div class="button-group">
-                        <input type="radio" id="promotion_yes" name="promotion_last_5years" value="1" {% if form_data and form_data.promotion_last_5years == '1' %}checked{% endif %} required>
-                        <label for="promotion_yes" class="toggle-button">Yes</label>
-        
-                        <input type="radio" id="promotion_no" name="promotion_last_5years" value="0" {% if form_data and form_data.promotion_last_5years == '0' %}checked{% endif %} required>
-                        <label for="promotion_no" class="toggle-button">No</label>
-                    </div>
-                    {% if errors and errors.promotion_last_5years %}
-                        <span class="error-message">{{ errors.promotion_last_5years }}</span>
-                    {% endif %}
+                <div class="button-group">
+                    <input type="radio" id="promotion_yes" name="promotion_last_5years" value="1" {% if form_data and
+                        form_data.promotion_last_5years=='1' %}checked{% endif %} required>
+                    <label for="promotion_yes" class="toggle-button">Yes</label>
+                    <input type="radio" id="promotion_no" name="promotion_last_5years" value="0" {% if form_data and
+                        form_data.promotion_last_5years=='0' %}checked{% endif %} required>
+                    <label for="promotion_no" class="toggle-button">No</label>
+                </div>
+                {% if errors and errors.promotion_last_5years %}
+                <span class="error-message">{{ errors.promotion_last_5years }}</span>
+                {% endif %}
                 {% else %}
-                    <input type="text" value="{{ 'Yes' if request.form.promotion_last_5years == '1' else 'No' }}" readonly>
+                <input type="text" value="{{ 'Yes' if request.form.promotion_last_5years == '1' else 'No' }}" readonly>
                 {% endif %}
             </div>
-        
+
             <div class="form-group">
                 <label>Work Accident Occurred</label>
                 {% if not results %}
-                    <div class="button-group">
-                        <input type="radio" id="work_accident_yes" name="Work_accident" value="1" {% if form_data and form_data.Work_accident == '1' %}checked{% endif %} required>
-                        <label for="work_accident_yes" class="toggle-button">Yes</label>
-        
-                        <input type="radio" id="work_accident_no" name="Work_accident" value="0" {% if form_data and form_data.Work_accident == '0' %}checked{% endif %} required>
-                        <label for="work_accident_no" class="toggle-button">No</label>
-                    </div>
-                    {% if errors and errors.Work_accident %}
-                        <span class="error-message">{{ errors.Work_accident }}</span>
-                    {% endif %}
+                <div class="button-group">
+                    <input type="radio" id="work_accident_yes" name="Work_accident" value="1" {% if form_data and
+                        form_data.Work_accident=='1' %}checked{% endif %} required>
+                    <label for="work_accident_yes" class="toggle-button">Yes</label>
+                    <input type="radio" id="work_accident_no" name="Work_accident" value="0" {% if form_data and
+                        form_data.Work_accident=='0' %}checked{% endif %} required>
+                    <label for="work_accident_no" class="toggle-button">No</label>
+                </div>
+                {% if errors and errors.Work_accident %}
+                <span class="error-message">{{ errors.Work_accident }}</span>
+                {% endif %}
                 {% else %}
-                    <input type="text" value="{{ 'Yes' if request.form.Work_accident == '1' else 'No' }}" readonly>
+                <input type="text" value="{{ 'Yes' if request.form.Work_accident == '1' else 'No' }}" readonly>
                 {% endif %}
             </div>
         </div>
-        
-        
 
         <!-- Fifth Row -->
         <div class="form-row">
@@ -191,12 +206,22 @@
     {% if results %}
     <div class="prediction-result">
         <h2>Prediction Result</h2>
-
         <p>Based on the values reported, the likelihood of the employee leaving the company is:</p>
         <p
             class="prediction-percentage {% if results[0] * 100 <= 33 %}low-risk{% elif results[0] * 100 <= 66 %}medium-risk{% else %}high-risk{% endif %}">
             <strong>{{ "%.2f"|format(results[0] * 100) }}%</strong>
         </p>
+        {% if recommendations %}
+        <div class="recommendations">
+            <h2>Recommendations</h2>
+            <p>To improve retention, consider focusing on the following metrics:</p>
+            <ul>
+                {% for metric in recommendations %}
+                <li>{{ metric }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}x`
         <a href="/single-employee" class="new-prediction-button">New Prediction</a>
     </div>
     {% endif %}

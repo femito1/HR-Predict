@@ -191,6 +191,8 @@ nav ul li a .icon {
 }
 
 .error-message {
+    padding-left: 2%;
+    padding-right: 2%;
     color: red;
     font-size: 0.9em;
     margin-top: 5px;
@@ -599,7 +601,7 @@ th {
 
 /* Style the prediction percentage text */
 .prediction-percentage {
-    font-size: 2.5rem; /* Larger font size */
+    font-size: 2.5rem;
     font-weight: bold;
     margin: 20px 0;
 }
@@ -615,6 +617,24 @@ th {
 
 .high-risk {
     color: red; /* 67-100%: High risk */
+}
+
+.remove-file {
+    cursor: pointer;
+    color: red;
+    margin-left: 10px;
+}
+
+.low-risk-table {
+    background-color: lightgreen;
+}
+
+.medium-risk-table {
+    background-color: yellow;
+}
+
+.high-risk-table {
+    background-color: lightcoral;
 }
 
 /* Style the "New Prediction" button */
