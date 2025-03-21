@@ -3,8 +3,8 @@ import pandas as pd
 import xgboost as xgb
 import pickle
 import os
-
-
+import numpy as np
+from src.pipeline.pytorch_gradient_boosting import PyTorchGradientBoosting
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 from src.exception import CustomException
@@ -22,13 +22,15 @@ class PredictPipeline:
 
         try:
             print("in predict_pipeline.py file")
-            model_path = 'artifacts/xgb_model2.pkl'
+            model_path = 'artifacts/xgboost.pth'
             # preprocesor_path = 'artifacts/preprocessor.pkl'
+
             
-            model = load_object(file_path=model_path)
+            
+            model = PyTorchGradientBoosting.load_model(model_path)
             # preprocessor = load_object(file_path=preprocesor_path)
 
-            ohe_feature_names = load_object("artifacts/ohe_feature_names.pkl")  # Expected OHE columns
+            #ohe_feature_names = load_object("artifacts/ohe_feature_names.pkl")  # Expected OHE columns
 
             num_features = ["satisfaction_level", "last_evaluation", "number_project",
                             "average_montly_hours", "time_spend_company", "Work_accident", "promotion_last_5years"]
@@ -38,22 +40,26 @@ class PredictPipeline:
             ohe_df = pd.get_dummies(features[cat_features])
             
             # Ensure all expected one-hot encoded columns exist
-            for col in ohe_feature_names:
-                if col not in ohe_df.columns:
-                    ohe_df[col] = 0  # Add missing columns with default value 0
+            #for col in ohe_feature_names:
+            #    if col not in ohe_df.columns:
+            #        ohe_df[col] = 0  # Add missing columns with default value 0
 
             # Reorder columns to match training
-            ohe_df = ohe_df[ohe_feature_names]
+            #ohe_df = ohe_df[ohe_feature_names]
 
             features_processed = pd.concat([features[num_features], ohe_df], axis=1)
+            feature_names = num_features + ['department_IT', 'department_RandD', 'department_accounting', 'department_hr', 
+                'department_management', 'department_marketing', 'department_product_mng', 
+                'department_sales', 'department_support', 'department_technical', 
+                'salary_high', 'salary_low', 'salary_medium']
+            
+            for feature in feature_names:
+                if feature not in features_processed.columns:
+                    features_processed[feature] = 0
 
-            missing_cols = set(model.feature_names) - set(features_processed.columns)
-            for col in missing_cols:
-                features_processed[col] = 0  # Add missing columns
+            features_processed = features_processed[feature_names]
 
-            features_processed = features_processed[model.feature_names]
-
-            predictions = model.predict(xgb.DMatrix(features_processed, feature_names = model.feature_names))
+            predictions = model.predict_proba(np.array(features_processed, dtype=np.float32))
 
             return predictions
         
@@ -73,8 +79,8 @@ class PredictPipeline:
             Dictionary with original data plus predictions and overall turnover rate
         """
         
-        model_path = 'artifacts/xgb_model2.pkl'
-        xgb_model = load_object(file_path=model_path)
+        model_path = 'artifacts/xgboost.pth'
+        xgb_model = PyTorchGradientBoosting.load_model(model_path)
 
         storage_t_rate =  []
         storage_df = []
@@ -125,13 +131,13 @@ class PredictPipeline:
                 df_encoded = df_encoded[feature_names]
             
 
-            dmatrix = xgb.DMatrix(df_encoded, feature_names=feature_names)
+            dmatrix = np.array(df_encoded, dtype=np.float32)
 
             
-            probabilities = xgb_model.predict(dmatrix)
+            probabilities = xgb_model.predict_proba(dmatrix)
             
-            threshold = 0.595
-            predictions = (probabilities > threshold).astype(int)
+            threshold = 0.55
+            predictions = np.array(probabilities > threshold, dtype=np.int32)
             
             df['probability'] = probabilities
 
