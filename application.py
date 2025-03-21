@@ -82,14 +82,13 @@ def predict_datapoint():
         satisfaction_level = float(satisfaction_level)
         if satisfaction_level < 0 or satisfaction_level > 1:
             errors["satisfaction_level"] = "Satisfaction level must be between 0 and 1."
-        elif not (satisfaction_level * 100).is_integer():
-            errors["satisfaction_level"] = (
-                "Satisfaction level must be in increments of 0.01."
-            )
+        
+        else:
+            scaled_value = satisfaction_level * 100
+            if not abs(scaled_value - round(scaled_value)) < 1e-6:  
+                errors["satisfaction_level"] = "Satisfaction level must be in increments of 0.01."
     except (ValueError, TypeError):
-        errors["satisfaction_level"] = (
-            "Satisfaction level must be a number between 0 and 1."
-        )
+        errors["satisfaction_level"] = "Satisfaction level must be a number between 0 and 1."
 
     try:
         last_evaluation = float(last_evaluation)
@@ -166,8 +165,9 @@ def predict_datapoint():
     pred_df = data.get_data_as_dataframe()
     predict_pipeline = PredictPipeline()
     results = predict_pipeline.predict(pred_df)
+    suggestions = predict_pipeline.suggest_improvements(pred_df)
 
-    return render_template("single_employee.html", results=results, form_data=form_data)
+    return render_template("single_employee.html", results=results, form_data=form_data, suggestions=suggestions)
 
 
 @app.route("/predict_from_csv", methods=["POST"])

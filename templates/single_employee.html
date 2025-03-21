@@ -210,13 +210,13 @@
             class="prediction-percentage {% if results[0] * 100 <= 33 %}low-risk{% elif results[0] * 100 <= 66 %}medium-risk{% else %}high-risk{% endif %}">
             <strong>{{ "%.2f"|format(results[0] * 100) }}%</strong>
         </p>
-        {% if recommendations %}
+        {% if suggestions %}
         <div class="recommendations">
             <h2>Recommendations</h2>
             <p>To improve retention, consider focusing on the following metrics:</p>
             <ul>
-                {% for metric in recommendations %}
-                <li>{{ metric }}</li>
+                {% for suggestion in suggestions %}
+                <li>{{ suggestion }}</li>
                 {% endfor %}
             </ul>
         </div>
