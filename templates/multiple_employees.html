@@ -6,13 +6,12 @@
 <h1 class="title">Multiple Employees Turnover Rate Prediction</h1>
 <hr class="header-line">
 <div class="multiple-employees-container">
-    <!-- Loading Spinner -->
+
     <div id="loading-spinner" style="display: none;">
         <div class="spinner"></div>
         <p>Loading... Please wait.</p>
     </div>
 
-    <!-- Display Errors -->
     {% if error %}
     <div class="error-message">
         <p>{{ error }}</p>
@@ -26,7 +25,7 @@
     </p>
 
     <form action="/predict_from_csv" method="POST" enctype="multipart/form-data" class="upload-form" id="upload-form"
-        onsubmit="showLoadingSpinner()">
+        onsubmit="handleFormSubmit()">
         <div class="file-upload" id="file-upload">
             <label for="csv_file">Select file(s) to upload or drag and drop</label>
             <input type="file" id="csv_file" name="csv_file" accept=".csv" multiple required>
@@ -36,9 +35,9 @@
         <div id="selected-files" class="selected-files">
             {% if filenames %}
             {% for filename in filenames %}
-            <p>File selected: <strong>{{ filename }}</strong></p>
+            <p>File selected: <strong>{{ filename }}</strong> <span class="remove-file"
+                    onclick="removeFile('{{ filename }}')">X</span></p>
             {% endfor %}
-            <a href="#" onclick="document.getElementById('csv_file').click();">Change files</a>
             {% endif %}
         </div>
 
@@ -62,6 +61,20 @@
             </div>
             <div id="table-{{ filename }}" class="review-table" style="display: none;">
                 <h3>Review Table for {{ filename }}</h3>
+                <div class="filter-checkboxes">
+                    <label>
+                        <input type="checkbox" id="low-risk-checkbox-{{ filename }}" checked
+                            onclick="filterTable('{{ filename }}')"> Low Risk
+                    </label>
+                    <label>
+                        <input type="checkbox" id="medium-risk-checkbox-{{ filename }}" checked
+                            onclick="filterTable('{{ filename }}')"> Medium Risk
+                    </label>
+                    <label>
+                        <input type="checkbox" id="high-risk-checkbox-{{ filename }}" checked
+                            onclick="filterTable('{{ filename }}')"> High Risk
+                    </label>
+                </div>
                 <div class="table-container">
                     <table>
                         <thead>
@@ -80,7 +93,8 @@
                         </thead>
                         <tbody>
                             {% for row in predictions[filename] %}
-                            <tr>
+                            <tr
+                                class="{% if row.probability * 100 <= 33 %}low-risk-table{% elif row.probability * 100 <= 66 %}medium-risk-table{% else %}high-risk-table{% endif %}">
                                 <td>{{ "%.2f"|format(row.satisfaction_level) }}</td>
                                 <td>{{ "%.2f"|format(row.last_evaluation) }}</td>
                                 <td>{{ row.number_project }}</td>
@@ -148,7 +162,20 @@
     fileUpload.addEventListener('drop', (e) => {
         e.preventDefault();
         fileUpload.classList.remove('dragover');
-        fileInput.files = e.dataTransfer.files;
+
+        const newFiles = e.dataTransfer.files;
+        const existingFiles = fileInput.files;
+        const updatedFiles = new DataTransfer();
+
+        for (let i = 0; i < existingFiles.length; i++) {
+            updatedFiles.items.add(existingFiles[i]);
+        }
+
+        for (let i = 0; i < newFiles.length; i++) {
+            updatedFiles.items.add(newFiles[i]);
+        }
+
+        fileInput.files = updatedFiles.files;
         updateSelectedFiles();
     });
 
@@ -162,11 +189,55 @@
 
         if (fileInput.files.length > 0) {
             for (let i = 0; i < fileInput.files.length; i++) {
-                selectedFiles.innerHTML += `<p>File selected: <strong>${fileInput.files[i].name}</strong></p>`;
+                selectedFiles.innerHTML += `<p>File selected: <strong>${fileInput.files[i].name}</strong> <span class="remove-file" onclick="removeFile('${fileInput.files[i].name}')">X</span></p>`;
             }
-            selectedFiles.innerHTML += `<a href="#" onclick="document.getElementById('csv_file').click();">Change files</a>`;
+        }
+    }
+
+    function removeFile(filename) {
+        const dataTransfer = new DataTransfer();
+        for (let i = 0; i < fileInput.files.length; i++) {
+            if (fileInput.files[i].name !== filename) {
+                dataTransfer.items.add(fileInput.files[i]);
+            }
+        }
+        fileInput.files = dataTransfer.files;
+        updateSelectedFiles();
+    }
+
+    function handleFormSubmit() {
+        showLoadingSpinner();
+        setTimeout(() => {
+            fileInput.value = '';
+            document.getElementById('selected-files').innerHTML = '';
+            hideLoadingSpinner();
+        }, 500);
+    }
+
+    function filterTable(filename) {
+        const lowRiskChecked = document.getElementById(`low-risk-checkbox-${filename}`).checked;
+        const mediumRiskChecked = document.getElementById(`medium-risk-checkbox-${filename}`).checked;
+        const highRiskChecked = document.getElementById(`high-risk-checkbox-${filename}`).checked;
+
+        const table = document.getElementById(`table-${filename}`).getElementsByTagName('tbody')[0];
+        const rows = table.getElementsByTagName('tr');
+
+        for (let i = 0; i < rows.length; i++) {
+            const row = rows[i];
+            const isLowRisk = row.classList.contains('low-risk-table');
+            const isMediumRisk = row.classList.contains('medium-risk-table');
+            const isHighRisk = row.classList.contains('high-risk-table');
+
+            if (
+                (lowRiskChecked && isLowRisk) ||
+                (mediumRiskChecked && isMediumRisk) ||
+                (highRiskChecked && isHighRisk)
+            ) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
         }
     }
 </script>
-
 {% endblock %}

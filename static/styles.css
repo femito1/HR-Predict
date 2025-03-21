@@ -15,7 +15,7 @@ body {
 
 .container {
     display: flex;
-    min-height: 100vh; 
+    min-height: 100vh;
 }
 
 /* Header Line */
@@ -35,12 +35,12 @@ body {
     padding: 20px;
     box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
     position: fixed;
-    height: 100vh; 
+    height: 100vh;
     overflow-y: auto;
 }
 
 .sidebar nav ul li a.active {
-    color: #00C16A; 
+    color: #00C16A;
 }
 
 /* Logo Styles */
@@ -91,10 +91,10 @@ nav ul li a .icon {
 
 /* Main Content Styles */
 .main-content {
-    margin-left: 250px; 
+    margin-left: 250px;
     flex-grow: 1;
     padding: 20px;
-    overflow-y: auto; 
+    overflow-y: auto;
 }
 
 
@@ -190,6 +190,15 @@ nav ul li a .icon {
     color: #555;
 }
 
+.error-message {
+    padding-left: 2%;
+    padding-right: 2%;
+    color: red;
+    font-size: 0.9em;
+    margin-top: 5px;
+    display: block;
+}
+
 /* Form Container */
 .form-container {
     width: 90%;
@@ -256,7 +265,7 @@ nav ul li a .icon {
 }
 
 /* Highlight selected button */
-input[type="radio"]:checked + .toggle-button {
+input[type="radio"]:checked+.toggle-button {
     background: #00C16A;
     color: white;
     border-color: #00C16A;
@@ -423,7 +432,8 @@ input[readonly] {
     margin-top: 10px;
 }
 
-.show-table-button, .download-button {
+.show-table-button,
+.download-button {
     padding: 8px 12px;
     margin-right: 10px;
     border: none;
@@ -549,8 +559,13 @@ input[readonly] {
 }
 
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 /* Sticky table headers */
@@ -567,18 +582,18 @@ table {
 th {
     position: sticky;
     top: 0;
-    background-color: #f8f9fa; 
+    background-color: #f8f9fa;
     z-index: 1;
 }
 
 /* Drag-and-Drop Highlight */
 .file-upload.dragover {
     border: 2px dashed #3498db;
-    background-color: #f0f8ff; 
+    background-color: #f0f8ff;
 }
 
 .file-upload {
-    border: 2px dashed #ccc; 
+    border: 2px dashed #ccc;
     padding: 20px;
     text-align: center;
     cursor: pointer;
@@ -592,22 +607,52 @@ th {
 
 /* Style the prediction percentage text */
 .prediction-percentage {
-    font-size: 2.5rem; /* Larger font size */
+    font-size: 2.5rem;
     font-weight: bold;
     margin: 20px 0;
 }
 
 /* Color coding based on risk level */
 .low-risk {
-    color: green; /* 0-33%: Low risk */
+    color: green;
+    /* 0-33%: Low risk */
 }
 
 .medium-risk {
-    color: orange; /* 34-66%: Medium risk */
+    color: orange;
+    /* 34-66%: Medium risk */
 }
 
 .high-risk {
-    color: red; /* 67-100%: High risk */
+    color: red;
+    /* 67-100%: High risk */
+}
+
+.remove-file {
+    cursor: pointer;
+    color: red;
+    margin-left: 10px;
+}
+
+.low-risk-table {
+    background-color: lightgreen;
+}
+
+.medium-risk-table {
+    background-color: yellow;
+}
+
+.high-risk-table {
+    background-color: lightcoral;
+}
+
+.filter-checkboxes {
+    margin-bottom: 10px;
+}
+
+.filter-checkboxes label {
+    margin-right: 10px;
+    cursor: pointer;
 }
 
 /* Style the "New Prediction" button */
