@@ -16,7 +16,7 @@ print(os.getcwd())
 
 class PredictPipeline:
     def __init__(self):
-        pass
+        self.model = None
 
     def predict(self, features):
 
@@ -28,12 +28,11 @@ class PredictPipeline:
             
             
             model = PyTorchGradientBoosting.load_model(model_path)
+            self.model = model
             # preprocessor = load_object(file_path=preprocesor_path)
 
             #ohe_feature_names = load_object("artifacts/ohe_feature_names.pkl")  # Expected OHE columns
 
-            num_features = ["satisfaction_level", "last_evaluation", "number_project",
-                            "average_montly_hours", "time_spend_company", "Work_accident", "promotion_last_5years"]
             cat_features = ["department", "salary"]
 
 
@@ -47,6 +46,8 @@ class PredictPipeline:
             # Reorder columns to match training
             #ohe_df = ohe_df[ohe_feature_names]
 
+            num_features = ["satisfaction_level", "last_evaluation", "number_project",
+                            "average_montly_hours", "time_spend_company", "Work_accident", "promotion_last_5years"]
             features_processed = pd.concat([features[num_features], ohe_df], axis=1)
             feature_names = num_features + ['department_IT', 'department_RandD', 'department_accounting', 'department_hr', 
                 'department_management', 'department_marketing', 'department_product_mng', 
@@ -151,6 +152,119 @@ class PredictPipeline:
             storage_t_rate.append(turnover_rate)
 
         return storage_df, storage_t_rate
+    
+    def suggest_improvements(self, employee: pd.DataFrame):
+        means = {'satisfaction_level': 0.4400980117614114,
+                'last_evaluation': 0.7181125735088211,
+                'average_montly_hours': 207.41921030523662}
+        suggestions = []
+        y_pred = self.predict(employee)
+
+        num_features = ["satisfaction_level", "last_evaluation", "number_project",
+                            "average_montly_hours", "time_spend_company", "Work_accident", "promotion_last_5years"]
+        
+        feature_names = num_features + ['department_IT', 'department_RandD', 'department_accounting', 'department_hr', 
+                'department_management', 'department_marketing', 'department_product_mng', 
+                'department_sales', 'department_support', 'department_technical', 
+                'salary_high', 'salary_low', 'salary_medium']
+            
+        for feature in feature_names:
+            if feature not in employee.columns:
+                employee[feature] = 0
+
+        employee = employee[feature_names]
+
+        employee_features = dict(zip(employee[['satisfaction_level', 'last_evaluation', 'average_montly_hours', 'salary_low', 'salary_medium', 'salary_high']].columns.tolist(), *employee[['satisfaction_level', 'last_evaluation', 'average_montly_hours', 'salary_low', 'salary_medium', 'salary_high']].values.tolist()))
+        employee = employee.to_numpy()
+        if y_pred > 0.55:
+            if employee_features['satisfaction_level'] < means['satisfaction_level']:
+                suggestions.append('It seems that this employee is not satisfied with their job, as their satisfaction level is lower than expected. We recommend that HR and managers talk to them to improve their situation.')
+            if employee_features['last_evaluation'] > means['last_evaluation']:
+                suggestions.append('This employee is performing very well. We have found that when employees have a very high last evaluation score, they are more likely to leave the company. We recommend that they get rewarded for their performance.')
+            if employee_features['average_montly_hours'] > means['average_montly_hours']:
+                suggestions.append('This employee is working a lot of hours. Work-life balance is important for employee retention, a few less hours a month could help them to be happier at work. Reconsidering your current resource planning and expanding your current workforce could be a good idea.')
+            if employee_features['salary_low']:
+                suggestions.append('This employee is earning a low salary. We recommend that you consider increasing their salary or offer them bonuses to retain them.')
+        return suggestions
+    
+    def suggest_improvements_batch(self, employees):
+        suggestions = []
+        means = {'satisfaction_level': 0.4400980117614114,
+                'last_evaluation': 0.7181125735088211,
+                'average_montly_hours': 207.41921030523662}
+        feats = ['satisfaction_level', 'last_evaluation', 'average_montly_hours']
+        mews = []
+
+        model_path = 'artifacts/xgboost.pth'
+        xgb_model = PyTorchGradientBoosting.load_model(model_path)
+
+        for df in employees:
+            
+            sugs = []
+            mews = df[feats].mean().to_dict()
+
+            if 'left' in df.columns:
+                df = df.drop(columns=['left'])
+            if 'sales' in df.columns:
+                df = df.rename(columns={'sales': 'department'})
+
+            df_processed = df.copy()
+            
+
+            numeric_cols = ['satisfaction_level', 'last_evaluation', 'number_project', 'average_montly_hours', 'time_spend_company', 'Work_accident', 'promotion_last_5years']
+            cat_cols =  ['department_IT', 'department_RandD', 'department_accounting', 'department_hr', 'department_management', 'department_marketing', 'department_product_mng', 'department_sales', 'department_support', 'department_technical', 'salary_high', 'salary_low', 'salary_medium']
+            
+            # to handle missing values, I am filling with the median for numeric columns 
+            # and the mode for categorical columns
+            if df_processed.isnull().sum().sum() > 0:
+                print(f"Warning: Found {df_processed.isnull().sum().sum()} missing values. Filling with appropriate values.")
+                
+                for col in numeric_cols:
+                    if df_processed[col].isnull().sum() > 0:
+                        df_processed[col] = df_processed[col].fillna(df_processed[col].median())
+                
+                for col in cat_cols:
+                    if df_processed[col].isnull().sum() > 0:
+                        df_processed[col] = df_processed[col].fillna(df_processed[col].mode()[0])
+            
+            df_encoded = pd.get_dummies(df_processed)
+            categorical_cols =  ['department_IT', 'department_RandD', 'department_accounting', 'department_hr', 'department_management', 'department_marketing', 'department_product_mng', 'department_sales', 'department_support', 'department_technical', 'salary_high', 'salary_low', 'salary_medium']
+            feature_names = numeric_cols + categorical_cols
+            
+            
+            if feature_names:
+                missing_features = [feat for feat in feature_names if feat not in df_encoded.columns]
+                extra_features = [feat for feat in df_encoded.columns if feat not in feature_names]
+                
+                if missing_features:
+                    print(f"Warning: Missing expected features: {missing_features}")
+                    for feat in missing_features:
+                        df_encoded[feat] = 0
+                
+                if extra_features:
+                    print(f"Warning: Found extra features not in training data: {extra_features}")
+                
+                df_encoded = df_encoded[feature_names]
+            
+
+            dmatrix = np.array(df_encoded, dtype=np.float32)
+
+            
+            probabilities = xgb_model.predict_proba(dmatrix)
+        
+            probabilities = np.array(probabilities, dtype=np.float32)
+            y_pred = probabilities.mean()
+
+            if y_pred > 0.55:
+                if mews['satisfaction_level'] < means['satisfaction_level']:
+                    sugs.append('It seems that a lot of employees are not satisfied with their job. We recommend that HR and managers talk to them to improve their situation.')
+                if mews['last_evaluation'] > means['last_evaluation']:
+                    sugs.append('A lot of employees have a very high last evaluation score. We recommend that you reward them for their performance.')
+                if mews['average_montly_hours'] > means['average_montly_hours']:
+                    sugs.append('A lot of employees are working a lot of hours. Work-life balance is important for employee retention, a few less hours a month could help them to be happier at work. Reconsidering your current resource planning and expanding your current workforce could be a good idea.')
+            suggestions.append(sugs)
+
+        return suggestions
 
 
 class CustomData:

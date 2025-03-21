@@ -100,7 +100,7 @@
             <div class="form-group">
                 <label for="last_evaluation">Latest Evaluation Score</label>
                 {% if not results %}
-                <input type="number" id="last_evaluation" name="last_evaluation" step="0.01" min="0" max="1"
+                <input type="number" id="last_evaluation" name="last_evaluation" step="0.01" v
                     value="{{ form_data.last_evaluation if form_data }}" required>
                 {% if errors and errors.last_evaluation %}
                 <span class="error-message">{{ errors.last_evaluation }}</span>
@@ -186,7 +186,7 @@
             <div class="form-group">
                 <label for="time_spend_company">Years Spent in Company</label>
                 {% if not results %}
-                <input type="number" id="time_spend_company" name="time_spend_company" min="0"
+                <input type="number" id="time_spend_company" name="time_spend_company" min="0" max="50"
                     value="{{ form_data.time_spend_company if form_data }}" required>
                 {% if errors and errors.time_spend_company %}
                 <span class="error-message">{{ errors.time_spend_company }}</span>
@@ -210,13 +210,13 @@
             class="prediction-percentage {% if results[0] * 100 <= 33 %}low-risk{% elif results[0] * 100 <= 66 %}medium-risk{% else %}high-risk{% endif %}">
             <strong>{{ "%.2f"|format(results[0] * 100) }}%</strong>
         </p>
-        {% if recommendations %}
+        {% if suggestions %}
         <div class="recommendations">
             <h2>Recommendations</h2>
             <p>To improve retention, consider focusing on the following metrics:</p>
             <ul>
-                {% for metric in recommendations %}
-                <li>{{ metric }}</li>
+                {% for suggestion in suggestions %}
+                <li>{{ suggestion }}</li>
                 {% endfor %}
             </ul>
         </div>
@@ -250,5 +250,21 @@
             });
         }
     });
+    function formatSuggestions() {
+        const suggestionItems = document.querySelectorAll('.recommendations li');
+
+        suggestionItems.forEach((li) => {
+            const text = li.textContent;
+            const firstSentenceEnd = text.indexOf('.'); // Find the first dot
+
+            if (firstSentenceEnd !== -1) {
+                const firstSentence = text.slice(0, firstSentenceEnd);
+                const restOfText = text.slice(firstSentenceEnd).trim();
+                li.innerHTML = `<span class="first-sentence">${firstSentence}</span>${restOfText}`;
+            }
+        });
+    }
+
+    window.onload = formatSuggestions;
 </script>
 {% endblock %}

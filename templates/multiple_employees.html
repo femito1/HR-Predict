@@ -47,12 +47,12 @@
     {% if turnover_rates is defined %}
     <div class="prediction-result">
         <h2>Prediction Results</h2>
-        {% for filename, turnover_rate in turnover_rates.items() %}
+        {% for filename, data in turnover_rates.items() %}
         <div class="prediction-result">
             <p>Turnover rate for <strong>{{ filename }}</strong>: </p>
             <p
-                class="prediction-percentage {% if turnover_rate <= 33 %}low-risk{% elif turnover_rate <= 66 %}medium-risk{% else %}high-risk{% endif %}">
-                <strong>{{ "%.2f"|format(turnover_rate) }}%</strong>
+                class="prediction-percentage {% if data.turnover_rate <= 33 %}low-risk{% elif data.turnover_rate <= 66 %}medium-risk{% else %}high-risk{% endif %}">
+                <strong>{{ "%.2f"|format(data.turnover_rate) }}%</strong>
             </p>
             <div class="action-buttons">
                 <button id="toggle-button-{{ filename }}" onclick="showTableWithSpinner('{{ filename }}')"
@@ -111,6 +111,17 @@
                     </table>
                 </div>
             </div>
+            {% if data.suggestions %}
+            <div class="recommendations">
+                <h2>Recommendations</h2>
+                <p>To improve retention, consider focusing on the following metrics:</p>
+                <ul>
+                    {% for suggestion in data.suggestions %}
+                    <li>{{ suggestion }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
         </div>
         {% endfor %}
     </div>
@@ -119,11 +130,23 @@
 
 <script>
     function showLoadingSpinner() {
-        document.getElementById('loading-spinner').style.display = 'block';
+        document.getElementById('loading-spinner').style.display = 'flex';
     }
 
     function hideLoadingSpinner() {
         document.getElementById('loading-spinner').style.display = 'none';
+    }
+
+    function handleFormSubmit() {
+        // Show the loading spinner
+        showLoadingSpinner();
+
+        // Optionally, disable the submit button to prevent multiple submissions
+        const submitButton = document.querySelector('.predict-button');
+        submitButton.disabled = true;
+
+        // Submit the form
+        document.getElementById('upload-form').submit();
     }
 
     function showTableWithSpinner(filename) {
@@ -205,15 +228,6 @@
         updateSelectedFiles();
     }
 
-    function handleFormSubmit() {
-        showLoadingSpinner();
-        setTimeout(() => {
-            fileInput.value = '';
-            document.getElementById('selected-files').innerHTML = '';
-            hideLoadingSpinner();
-        }, 500);
-    }
-
     function filterTable(filename) {
         const lowRiskChecked = document.getElementById(`low-risk-checkbox-${filename}`).checked;
         const mediumRiskChecked = document.getElementById(`medium-risk-checkbox-${filename}`).checked;
@@ -239,5 +253,22 @@
             }
         }
     }
+
+    function formatSuggestions() {
+        const suggestionItems = document.querySelectorAll('.recommendations li');
+
+        suggestionItems.forEach((li) => {
+            const text = li.textContent;
+            const firstSentenceEnd = text.indexOf('.'); // Find the first dot
+
+            if (firstSentenceEnd !== -1) {
+                const firstSentence = text.slice(0, firstSentenceEnd);
+                const restOfText = text.slice(firstSentenceEnd).trim();
+                li.innerHTML = `<span class="first-sentence">${firstSentence}</span>${restOfText}`;
+            }
+        });
+    }
+
+    window.onload = formatSuggestions;
 </script>
 {% endblock %}

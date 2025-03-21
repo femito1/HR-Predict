@@ -82,10 +82,13 @@ def predict_datapoint():
         satisfaction_level = float(satisfaction_level)
         if satisfaction_level < 0 or satisfaction_level > 1:
             errors["satisfaction_level"] = "Satisfaction level must be between 0 and 1."
-        elif not (satisfaction_level * 100).is_integer():
-            errors["satisfaction_level"] = (
-                "Satisfaction level must be in increments of 0.01."
-            )
+
+        else:
+            scaled_value = satisfaction_level * 100
+            if not abs(scaled_value - round(scaled_value)) < 1e-6:
+                errors["satisfaction_level"] = (
+                    "Satisfaction level must be in increments of 0.01."
+                )
     except (ValueError, TypeError):
         errors["satisfaction_level"] = (
             "Satisfaction level must be a number between 0 and 1."
@@ -125,6 +128,10 @@ def predict_datapoint():
         if time_spend_company < 0:
             errors["time_spend_company"] = (
                 "Years spent in company must be a positive integer."
+            )
+        if time_spend_company > 50:
+            errors["time_spend_company"] = (
+                "Average monthly hours must be between 0 and 50."
             )
     except (ValueError, TypeError):
         errors["time_spend_company"] = "Years spent in company must be an integer."
@@ -166,8 +173,14 @@ def predict_datapoint():
     pred_df = data.get_data_as_dataframe()
     predict_pipeline = PredictPipeline()
     results = predict_pipeline.predict(pred_df)
+    suggestions = predict_pipeline.suggest_improvements(pred_df)
 
-    return render_template("single_employee.html", results=results, form_data=form_data)
+    return render_template(
+        "single_employee.html",
+        results=results,
+        form_data=form_data,
+        suggestions=suggestions,
+    )
 
 
 @app.route("/predict_from_csv", methods=["POST"])
@@ -258,6 +271,8 @@ def upload_csv():
                             400,
                         )
 
+                    df = df.dropna(axis=1, how="all")
+
                     numerical_fields = [
                         "satisfaction_level",
                         "last_evaluation",
@@ -267,7 +282,7 @@ def upload_csv():
                     ]
                     for field in numerical_fields:
                         if not pd.api.types.is_numeric_dtype(df[field]):
-                            error_message = f"Non-numerical value found in column {field} in file {file.filename}."
+                            error_message = f"Non-numerical value found in column '{field}' in file '{file.filename}'."
                             logging.info(f"Returning error message: {error_message}")
                             return (
                                 render_template(
@@ -359,18 +374,22 @@ def upload_csv():
             predictions_list, turnover_rates = predict_pipeline.predict_from_csv(
                 dataframes
             )
-            turnover_rates_dict = {
-                filename: rate for filename, rate in zip(filenames, turnover_rates)
-            }
-            predictions = {}
+            suggestions_list = predict_pipeline.suggest_improvements_batch(dataframes)
 
+            turnover_rates_dict = {
+                filename: {"turnover_rate": rate, "suggestions": suggestions}
+                for filename, rate, suggestions in zip(
+                    filenames, turnover_rates, suggestions_list
+                )
+            }
+
+            predictions = {}
             for i, filename in enumerate(filenames):
                 if "probability" not in predictions_list[i].columns:
                     raise ValueError(
                         f"Column 'probability' not found in predictions for {filename}"
                     )
                 predictions[filename] = predictions_list[i].to_dict("records")
-
                 csv_storage[filename] = predictions_list[i].to_csv(index=False)
                 logging.info(f"Stored CSV data for file: {filename}")
 
@@ -386,13 +405,7 @@ def upload_csv():
         logging.error(f"Error occurred: {str(e)}")
         logging.error(traceback.format_exc())
         logging.info(f"Returning error message: {error_message}")
-        return (
-            render_template(
-                "multiple_employees.html",
-                error=error_message,
-            ),
-            400,
-        )
+        return render_template("multiple_employees.html", error=error_message), 400
 
 
 @app.route("/download_csv")
