@@ -130,142 +130,145 @@
 
 <script>
     function showLoadingSpinner() {
-        document.getElementById('loading-spinner').style.display = 'block';
+    document.getElementById('loading-spinner').style.display = 'flex';
+}
+
+function hideLoadingSpinner() {
+    document.getElementById('loading-spinner').style.display = 'none';
+}
+
+function handleFormSubmit() {
+    // Show the loading spinner
+    showLoadingSpinner();
+
+    // Optionally, disable the submit button to prevent multiple submissions
+    const submitButton = document.querySelector('.predict-button');
+    submitButton.disabled = true;
+
+    // Submit the form
+    document.getElementById('upload-form').submit();
+}
+
+function showTableWithSpinner(filename) {
+    showLoadingSpinner(); // Show the spinner
+    setTimeout(() => {
+        toggleTable(filename);
+        hideLoadingSpinner();
+    }, 500);
+}
+
+function toggleTable(filename) {
+    const table = document.getElementById(`table-${filename}`);
+    const button = document.getElementById(`toggle-button-${filename}`);
+
+    if (table.style.display === 'none') {
+        table.style.display = 'block';
+        button.textContent = 'Hide Table';
+    } else {
+        table.style.display = 'none';
+        button.textContent = 'Show Table';
+    }
+}
+
+const fileUpload = document.getElementById('file-upload');
+const fileInput = document.getElementById('csv_file');
+
+fileUpload.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    fileUpload.classList.add('dragover');
+});
+
+fileUpload.addEventListener('dragleave', () => {
+    fileUpload.classList.remove('dragover');
+});
+
+fileUpload.addEventListener('drop', (e) => {
+    e.preventDefault();
+    fileUpload.classList.remove('dragover');
+
+    const newFiles = e.dataTransfer.files;
+    const existingFiles = fileInput.files;
+    const updatedFiles = new DataTransfer();
+
+    for (let i = 0; i < existingFiles.length; i++) {
+        updatedFiles.items.add(existingFiles[i]);
     }
 
-    function hideLoadingSpinner() {
-        document.getElementById('loading-spinner').style.display = 'none';
+    for (let i = 0; i < newFiles.length; i++) {
+        updatedFiles.items.add(newFiles[i]);
     }
 
-    function showTableWithSpinner(filename) {
-        showLoadingSpinner(); // Show the spinner
-        setTimeout(() => {
-            toggleTable(filename);
-            hideLoadingSpinner();
-        }, 500);
-    }
+    fileInput.files = updatedFiles.files;
+    updateSelectedFiles();
+});
 
-    function toggleTable(filename) {
-        const table = document.getElementById(`table-${filename}`);
-        const button = document.getElementById(`toggle-button-${filename}`);
+fileInput.addEventListener('change', () => {
+    updateSelectedFiles();
+});
 
-        if (table.style.display === 'none') {
-            table.style.display = 'block';
-            button.textContent = 'Hide Table';
-        } else {
-            table.style.display = 'none';
-            button.textContent = 'Show Table';
-        }
-    }
+function updateSelectedFiles() {
+    const selectedFiles = document.getElementById('selected-files');
+    selectedFiles.innerHTML = '';
 
-    const fileUpload = document.getElementById('file-upload');
-    const fileInput = document.getElementById('csv_file');
-
-    fileUpload.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        fileUpload.classList.add('dragover');
-    });
-
-    fileUpload.addEventListener('dragleave', () => {
-        fileUpload.classList.remove('dragover');
-    });
-
-    fileUpload.addEventListener('drop', (e) => {
-        e.preventDefault();
-        fileUpload.classList.remove('dragover');
-
-        const newFiles = e.dataTransfer.files;
-        const existingFiles = fileInput.files;
-        const updatedFiles = new DataTransfer();
-
-        for (let i = 0; i < existingFiles.length; i++) {
-            updatedFiles.items.add(existingFiles[i]);
-        }
-
-        for (let i = 0; i < newFiles.length; i++) {
-            updatedFiles.items.add(newFiles[i]);
-        }
-
-        fileInput.files = updatedFiles.files;
-        updateSelectedFiles();
-    });
-
-    fileInput.addEventListener('change', () => {
-        updateSelectedFiles();
-    });
-
-    function updateSelectedFiles() {
-        const selectedFiles = document.getElementById('selected-files');
-        selectedFiles.innerHTML = '';
-
-        if (fileInput.files.length > 0) {
-            for (let i = 0; i < fileInput.files.length; i++) {
-                selectedFiles.innerHTML += `<p>File selected: <strong>${fileInput.files[i].name}</strong> <span class="remove-file" onclick="removeFile('${fileInput.files[i].name}')">X</span></p>`;
-            }
-        }
-    }
-
-    function removeFile(filename) {
-        const dataTransfer = new DataTransfer();
+    if (fileInput.files.length > 0) {
         for (let i = 0; i < fileInput.files.length; i++) {
-            if (fileInput.files[i].name !== filename) {
-                dataTransfer.items.add(fileInput.files[i]);
-            }
-        }
-        fileInput.files = dataTransfer.files;
-        updateSelectedFiles();
-    }
-
-    function handleFormSubmit() {
-        showLoadingSpinner();
-        setTimeout(() => {
-            fileInput.value = '';
-            document.getElementById('selected-files').innerHTML = '';
-            hideLoadingSpinner();
-        }, 500);
-    }
-
-    function filterTable(filename) {
-        const lowRiskChecked = document.getElementById(`low-risk-checkbox-${filename}`).checked;
-        const mediumRiskChecked = document.getElementById(`medium-risk-checkbox-${filename}`).checked;
-        const highRiskChecked = document.getElementById(`high-risk-checkbox-${filename}`).checked;
-
-        const table = document.getElementById(`table-${filename}`).getElementsByTagName('tbody')[0];
-        const rows = table.getElementsByTagName('tr');
-
-        for (let i = 0; i < rows.length; i++) {
-            const row = rows[i];
-            const isLowRisk = row.classList.contains('low-risk-table');
-            const isMediumRisk = row.classList.contains('medium-risk-table');
-            const isHighRisk = row.classList.contains('high-risk-table');
-
-            if (
-                (lowRiskChecked && isLowRisk) ||
-                (mediumRiskChecked && isMediumRisk) ||
-                (highRiskChecked && isHighRisk)
-            ) {
-                row.style.display = '';
-            } else {
-                row.style.display = 'none';
-            }
+            selectedFiles.innerHTML += `<p>File selected: <strong>${fileInput.files[i].name}</strong> <span class="remove-file" onclick="removeFile('${fileInput.files[i].name}')">X</span></p>`;
         }
     }
+}
 
-    function formatSuggestions() {
-        const suggestionItems = document.querySelectorAll('.recommendations li');
-
-        suggestionItems.forEach((li) => {
-            const text = li.textContent;
-            const firstSentenceEnd = text.indexOf('.'); // Find the first dot
-
-            if (firstSentenceEnd !== -1) {
-                const firstSentence = text.slice(0, firstSentenceEnd);
-                const restOfText = text.slice(firstSentenceEnd).trim(); 
-                li.innerHTML = `<span class="first-sentence">${firstSentence}</span>${restOfText}`;
-            }
-        });
+function removeFile(filename) {
+    const dataTransfer = new DataTransfer();
+    for (let i = 0; i < fileInput.files.length; i++) {
+        if (fileInput.files[i].name !== filename) {
+            dataTransfer.items.add(fileInput.files[i]);
+        }
     }
+    fileInput.files = dataTransfer.files;
+    updateSelectedFiles();
+}
 
-    window.onload = formatSuggestions;
+function filterTable(filename) {
+    const lowRiskChecked = document.getElementById(`low-risk-checkbox-${filename}`).checked;
+    const mediumRiskChecked = document.getElementById(`medium-risk-checkbox-${filename}`).checked;
+    const highRiskChecked = document.getElementById(`high-risk-checkbox-${filename}`).checked;
+
+    const table = document.getElementById(`table-${filename}`).getElementsByTagName('tbody')[0];
+    const rows = table.getElementsByTagName('tr');
+
+    for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const isLowRisk = row.classList.contains('low-risk-table');
+        const isMediumRisk = row.classList.contains('medium-risk-table');
+        const isHighRisk = row.classList.contains('high-risk-table');
+
+        if (
+            (lowRiskChecked && isLowRisk) ||
+            (mediumRiskChecked && isMediumRisk) ||
+            (highRiskChecked && isHighRisk)
+        ) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    }
+}
+
+function formatSuggestions() {
+    const suggestionItems = document.querySelectorAll('.recommendations li');
+
+    suggestionItems.forEach((li) => {
+        const text = li.textContent;
+        const firstSentenceEnd = text.indexOf('.'); // Find the first dot
+
+        if (firstSentenceEnd !== -1) {
+            const firstSentence = text.slice(0, firstSentenceEnd);
+            const restOfText = text.slice(firstSentenceEnd).trim(); 
+            li.innerHTML = `<span class="first-sentence">${firstSentence}</span>${restOfText}`;
+        }
+    });
+}
+
+window.onload = formatSuggestions;
 </script>
 {% endblock %}
