@@ -125,6 +125,10 @@ def predict_datapoint():
             errors["time_spend_company"] = (
                 "Years spent in company must be a positive integer."
             )
+        if time_spend_company > 50:
+            errors["time_spend_company"] = (
+                "Average monthly hours must be between 0 and 50."
+            )
     except (ValueError, TypeError):
         errors["time_spend_company"] = "Years spent in company must be an integer."
 

@@ -100,7 +100,7 @@
             <div class="form-group">
                 <label for="last_evaluation">Latest Evaluation Score</label>
                 {% if not results %}
-                <input type="number" id="last_evaluation" name="last_evaluation" step="0.01" min="0" max="1"
+                <input type="number" id="last_evaluation" name="last_evaluation" step="0.01" v
                     value="{{ form_data.last_evaluation if form_data }}" required>
                 {% if errors and errors.last_evaluation %}
                 <span class="error-message">{{ errors.last_evaluation }}</span>
@@ -186,7 +186,7 @@
             <div class="form-group">
                 <label for="time_spend_company">Years Spent in Company</label>
                 {% if not results %}
-                <input type="number" id="time_spend_company" name="time_spend_company" min="0"
+                <input type="number" id="time_spend_company" name="time_spend_company" min="0" max="50"
                     value="{{ form_data.time_spend_company if form_data }}" required>
                 {% if errors and errors.time_spend_company %}
                 <span class="error-message">{{ errors.time_spend_company }}</span>
