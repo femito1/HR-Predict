@@ -250,5 +250,21 @@
             });
         }
     });
+    function formatSuggestions() {
+        const suggestionItems = document.querySelectorAll('.recommendations li');
+
+        suggestionItems.forEach((li) => {
+            const text = li.textContent;
+            const firstSentenceEnd = text.indexOf('.'); // Find the first dot
+
+            if (firstSentenceEnd !== -1) {
+                const firstSentence = text.slice(0, firstSentenceEnd);
+                const restOfText = text.slice(firstSentenceEnd).trim();
+                li.innerHTML = `<span class="first-sentence">${firstSentence}</span>${restOfText}`;
+            }
+        });
+    }
+
+    window.onload = formatSuggestions;
 </script>
 {% endblock %}

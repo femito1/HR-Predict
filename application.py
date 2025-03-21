@@ -356,30 +356,36 @@ def upload_csv():
                     )
 
             predict_pipeline = PredictPipeline()
-            predictions_list, turnover_rates = predict_pipeline.predict_from_csv(
-                dataframes
-            )
-            turnover_rates_dict = {
-                filename: rate for filename, rate in zip(filenames, turnover_rates)
+
+        predictions_list, turnover_rates = predict_pipeline.predict_from_csv(dataframes)
+
+        suggestions_list = predict_pipeline.suggest_improvements_batch(dataframes)
+
+        turnover_rates_dict = {
+            filename: {
+                "turnover_rate": rate,
+                "suggestions": suggestions
             }
-            predictions = {}
+            for filename, rate, suggestions in zip(filenames, turnover_rates, suggestions_list)
+        }
 
-            for i, filename in enumerate(filenames):
-                if "probability" not in predictions_list[i].columns:
-                    raise ValueError(
-                        f"Column 'probability' not found in predictions for {filename}"
-                    )
-                predictions[filename] = predictions_list[i].to_dict("records")
+        predictions = {}
+        for i, filename in enumerate(filenames):
+            if "probability" not in predictions_list[i].columns:
+                raise ValueError(
+                    f"Column 'probability' not found in predictions for {filename}"
+                )
+            predictions[filename] = predictions_list[i].to_dict("records")
+            
+            csv_storage[filename] = predictions_list[i].to_csv(index=False)
+            logging.info(f"Stored CSV data for file: {filename}")
 
-                csv_storage[filename] = predictions_list[i].to_csv(index=False)
-                logging.info(f"Stored CSV data for file: {filename}")
-
-            return render_template(
-                "multiple_employees.html",
-                filenames={},
-                turnover_rates=turnover_rates_dict,
-                predictions=predictions,
-            )
+        return render_template(
+            "multiple_employees.html",
+            filenames={}, 
+            turnover_rates=turnover_rates_dict,
+            predictions=predictions
+        )
 
     except Exception as e:
         error_message = "An error occurred while processing the files."

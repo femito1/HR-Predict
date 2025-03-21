@@ -51,3 +51,37 @@ The application will be available at:
 ```
 http://0.0.0.0:5000/
 ```
+
+## Explanation of the Structure:
+
+1. **Root Files**:
+   - `application.py`: The main Flask application file.
+   - `README.md`: Documentation for the project.
+   - `requirements.txt`: Lists the Python dependencies for the project.
+   - `xgboost_scratch.ipynb`: A Jupyter notebook with the results using `PyTorchGradientBoosting`.
+
+2. **`artifacts` Directory**:
+   - Contains serialized files like pre-trained models (`xgboost.pkl`, `xgboost.pth`) and one-hot encoded feature names (`ohe_feature_names.pkl`).
+
+3. **`src` Directory**:
+   - Contains the source code for the project, including:
+     - `components`: Data processing for the project.
+     - `pipeline`: Data processing and prediction pipelines.
+     - `exception.py`: Custom exception handling.
+     - `logger.py`: Logging configuration.
+     - `utils.py`: Utility functions.
+
+4. **`static` Directory**:
+   - Contains static assets like images (`img`) and CSS files (`styles.css`).
+
+5. **`templates` Directory**:
+   - Contains HTML templates for the Flask application:
+     - `base.html`: Base template for all pages.
+     - `index.html`: Home page.
+     - `multiple_employees.html`: Page for multiple employee predictions.
+     - `single_employee.html`: Page for single employee predictions.
+
+7. **`tests` Directory**:
+   - Contains test files for the application:
+     - `test_predict_multiple.py`: Tests for multiple employee predictions.
+     - `test_predict_single.py`: Tests for single employee predictions.
