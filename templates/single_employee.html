@@ -19,7 +19,6 @@
     </div>
     {% endif %}
 
-    <!-- Display missing field errors -->
     {% if errors %}
     <div class="error-message">
         {% for field, message in errors.items() %}
@@ -35,7 +34,7 @@
                 <label for="department">Department</label>
                 {% if not results %}
                 <select id="department" name="department" required>
-                    <option value="">Select</option>
+                    <option value="">Select Department</option>
                     <option value="sales" {% if form_data and form_data.department=='sales' %}selected{% endif %}>Sales
                     </option>
                     <option value="accounting" {% if form_data and form_data.department=='accounting' %}selected{% endif
@@ -67,7 +66,7 @@
                 <label for="salary">Salary</label>
                 {% if not results %}
                 <select id="salary" name="salary" required>
-                    <option value="">Select</option>
+                    <option value="">Select Salary</option>
                     <option value="low" {% if form_data and form_data.salary=='low' %}selected{% endif %}>Low</option>
                     <option value="medium" {% if form_data and form_data.salary=='medium' %}selected{% endif %}>Medium
                     </option>
@@ -221,9 +220,35 @@
                 {% endfor %}
             </ul>
         </div>
-        {% endif %}x`
+        {% endif %}
         <a href="/single-employee" class="new-prediction-button">New Prediction</a>
     </div>
     {% endif %}
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const departmentSelect = document.getElementById('department');
+        const salarySelect = document.getElementById('salary');
+
+        function removeDefaultOption(selectElement) {
+            const defaultOption = selectElement.querySelector('option[value=""]');
+            if (defaultOption) {
+                defaultOption.remove();
+            }
+        }
+
+        if (departmentSelect) {
+            departmentSelect.addEventListener('focus', function () {
+                removeDefaultOption(this);
+            });
+        }
+
+        if (salarySelect) {
+            salarySelect.addEventListener('focus', function () {
+                removeDefaultOption(this);
+            });
+        }
+    });
+</script>
 {% endblock %}

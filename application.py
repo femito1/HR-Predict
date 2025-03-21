@@ -5,6 +5,7 @@ import io
 import zipfile
 import sys
 import traceback
+from werkzeug.utils import secure_filename
 
 from sklearn.preprocessing import StandardScaler
 from src.pipeline.predict_pipeline import CustomData, PredictPipeline
@@ -19,8 +20,21 @@ application = Flask(__name__)
 
 app = application
 
-VALID_DEPARTMENTS = ["sales", "accounting", "hr", "technical", "support", "management", "IT", "product_mng", "marketing", "RandD"]
+VALID_DEPARTMENTS = [
+    "sales",
+    "accounting",
+    "hr",
+    "technical",
+    "support",
+    "management",
+    "IT",
+    "product_mng",
+    "marketing",
+    "RandD",
+]
 VALID_SALARIES = ["low", "medium", "high"]
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
+
 
 @app.route("/")
 def index():
@@ -32,7 +46,6 @@ def predict_datapoint():
     errors = {}
     form_data = request.form
 
-    # List of required fields
     required_fields = [
         "satisfaction_level",
         "last_evaluation",
@@ -45,15 +58,16 @@ def predict_datapoint():
         "salary",
     ]
 
-    # Check for missing fields
     for field in required_fields:
         if field not in form_data or not form_data[field]:
             errors[field] = f"{field.replace('_', ' ').title()} is required."
 
     if errors:
-        return render_template("single_employee.html", errors=errors, form_data=form_data), 400
+        return (
+            render_template("single_employee.html", errors=errors, form_data=form_data),
+            400,
+        )
 
-    # If no missing fields, proceed with validation
     satisfaction_level = form_data.get("satisfaction_level")
     last_evaluation = form_data.get("last_evaluation")
     number_project = form_data.get("number_project")
@@ -64,27 +78,32 @@ def predict_datapoint():
     department = form_data.get("department")
     salary = form_data.get("salary")
 
-    # Validate satisfaction_level
     try:
         satisfaction_level = float(satisfaction_level)
         if satisfaction_level < 0 or satisfaction_level > 1:
             errors["satisfaction_level"] = "Satisfaction level must be between 0 and 1."
-        elif not (satisfaction_level * 100).is_integer():  # Check if it's a multiple of 0.01
-            errors["satisfaction_level"] = "Satisfaction level must be in increments of 0.01."
+        elif not (satisfaction_level * 100).is_integer():
+            errors["satisfaction_level"] = (
+                "Satisfaction level must be in increments of 0.01."
+            )
     except (ValueError, TypeError):
-        errors["satisfaction_level"] = "Satisfaction level must be a number between 0 and 1."
+        errors["satisfaction_level"] = (
+            "Satisfaction level must be a number between 0 and 1."
+        )
 
-    # Validate last_evaluation
     try:
         last_evaluation = float(last_evaluation)
         if last_evaluation < 0 or last_evaluation > 1:
             errors["last_evaluation"] = "Last evaluation score must be between 0 and 1."
-        elif not (last_evaluation * 100).is_integer():  # Check if it's a multiple of 0.01
-            errors["last_evaluation"] = "Last evaluation score must be in increments of 0.01."
+        elif not (last_evaluation * 100).is_integer():
+            errors["last_evaluation"] = (
+                "Last evaluation score must be in increments of 0.01."
+            )
     except (ValueError, TypeError):
-        errors["last_evaluation"] = "Last evaluation score must be a number between 0 and 1."
+        errors["last_evaluation"] = (
+            "Last evaluation score must be a number between 0 and 1."
+        )
 
-    # Validate other fields
     try:
         number_project = int(number_project)
         if number_project < 0:
@@ -95,21 +114,27 @@ def predict_datapoint():
     try:
         average_montly_hours = int(average_montly_hours)
         if average_montly_hours < 80 or average_montly_hours > 320:
-            errors["average_montly_hours"] = "Average monthly hours must be between 80 and 320."
+            errors["average_montly_hours"] = (
+                "Average monthly hours must be between 80 and 320."
+            )
     except (ValueError, TypeError):
         errors["average_montly_hours"] = "Average monthly hours must be an integer."
 
     try:
         time_spend_company = int(time_spend_company)
         if time_spend_company < 0:
-            errors["time_spend_company"] = "Years spent in company must be a positive integer."
+            errors["time_spend_company"] = (
+                "Years spent in company must be a positive integer."
+            )
     except (ValueError, TypeError):
         errors["time_spend_company"] = "Years spent in company must be an integer."
 
     if promotion_last_5years not in ["0", "1"]:
         errors["promotion_last_5years"] = "Invalid promotion_last_5years value."
     elif promotion_last_5years == "1" and time_spend_company < 5:
-        errors["promotion_last_5years"] = "Employee cannot be promoted in the last 5 years if they have worked for less than 5 years."
+        errors["promotion_last_5years"] = (
+            "Employee cannot be promoted in the last 5 years if they have worked for less than 5 years."
+        )
 
     if Work_accident not in ["0", "1"]:
         errors["Work_accident"] = "Invalid Work_accident value."
@@ -121,7 +146,10 @@ def predict_datapoint():
         errors["salary"] = "Invalid salary selected."
 
     if errors:
-        return render_template("single_employee.html", errors=errors, form_data=form_data), 400
+        return (
+            render_template("single_employee.html", errors=errors, form_data=form_data),
+            400,
+        )
 
     data = CustomData(
         satisfaction_level=satisfaction_level,
@@ -141,14 +169,28 @@ def predict_datapoint():
 
     return render_template("single_employee.html", results=results, form_data=form_data)
 
+
 @app.route("/predict_from_csv", methods=["POST"])
 def upload_csv():
     try:
         if request.method == "POST":
             uploaded_files = request.files.getlist("csv_file")
+            if not uploaded_files or all(
+                file.filename == "" for file in uploaded_files
+            ):
+                error_message = "No file selected."
+                logging.info(f"Returning error message: {error_message}")
+                return (
+                    render_template("multiple_employees.html", error=error_message),
+                    400,
+                )
+
             if len(uploaded_files) > 5:
-                return render_template(
-                    "multiple_employees.html", error="Maximum of 5 files allowed."
+                error_message = "Maximum of 5 files allowed."
+                logging.info(f"Returning error message: {error_message}")
+                return (
+                    render_template("multiple_employees.html", error=error_message),
+                    400,
                 )
 
             dataframes = []
@@ -156,28 +198,181 @@ def upload_csv():
 
             for file in uploaded_files:
                 if not file or file.filename == "":
-                    return render_template(
-                        "multiple_employees.html", error="No file selected."
-                    )
+                    continue
 
                 if not file.filename.endswith(".csv"):
-                    return render_template(
-                        "multiple_employees.html", error="Only CSV files are allowed."
+                    error_message = f"Only CSV files are allowed. File '{file.filename}' is not a CSV."
+                    logging.info(f"Returning error message: {error_message}")
+                    return (
+                        render_template("multiple_employees.html", error=error_message),
+                        400,
                     )
 
-                df = pd.read_csv(file)
-                dataframes.append(df)
-                filenames.append(file.filename)
+                file.seek(0, 2)
+                file_size = file.tell()
+                file.seek(0)
+                if file_size > MAX_FILE_SIZE:
+                    error_message = f"File {file.filename} exceeds the maximum allowed size of 10 MB."
+                    logging.info(f"Returning error message: {error_message}")
+                    return (
+                        render_template("multiple_employees.html", error=error_message),
+                        400,
+                    )
+
+                try:
+                    df = pd.read_csv(file)
+
+                    if len(df) < 1:
+                        error_message = (
+                            f"File '{file.filename}' is empty or contains no data."
+                        )
+                        logging.info(f"Returning error message: {error_message}")
+                        return (
+                            render_template(
+                                "multiple_employees.html", error=error_message
+                            ),
+                            400,
+                        )
+
+                    required_columns = [
+                        "satisfaction_level",
+                        "last_evaluation",
+                        "number_project",
+                        "average_montly_hours",
+                        "time_spend_company",
+                        "Work_accident",
+                        "promotion_last_5years",
+                        "department",
+                        "salary",
+                    ]
+                    missing_columns = [
+                        col for col in required_columns if col not in df.columns
+                    ]
+                    if missing_columns:
+                        error_message = f"Missing required columns in file '{file.filename}': {', '.join(missing_columns)}"
+                        logging.info(f"Returning error message: {error_message}")
+                        return (
+                            render_template(
+                                "multiple_employees.html", error=error_message
+                            ),
+                            400,
+                        )
+
+                    numerical_fields = [
+                        "satisfaction_level",
+                        "last_evaluation",
+                        "number_project",
+                        "average_montly_hours",
+                        "time_spend_company",
+                    ]
+                    for field in numerical_fields:
+                        if not pd.api.types.is_numeric_dtype(df[field]):
+                            error_message = f"Non-numerical value found in column {field} in file {file.filename}."
+                            logging.info(f"Returning error message: {error_message}")
+                            return (
+                                render_template(
+                                    "multiple_employees.html", error=error_message
+                                ),
+                                400,
+                            )
+
+                    for field in ["satisfaction_level", "last_evaluation"]:
+                        if (df[field] < 0).any() or (df[field] > 1).any():
+                            error_message = f"Invalid values in column '{field}' in file '{file.filename}'. Values must be between 0 and 1."
+                            logging.info(f"Returning error message: {error_message}")
+                            return (
+                                render_template(
+                                    "multiple_employees.html", error=error_message
+                                ),
+                                400,
+                            )
+
+                    for field in [
+                        "number_project",
+                        "average_montly_hours",
+                        "time_spend_company",
+                    ]:
+                        if (df[field] < 0).any():
+                            error_message = f"Invalid values in column '{field}' in file '{file.filename}'. Values must be positive."
+                            logging.info(f"Returning error message: {error_message}")
+                            return (
+                                render_template(
+                                    "multiple_employees.html", error=error_message
+                                ),
+                                400,
+                            )
+
+                    invalid_departments = df[~df["department"].isin(VALID_DEPARTMENTS)][
+                        "department"
+                    ].unique()
+                    if len(invalid_departments) > 0:
+                        error_message = f"Invalid department values in file '{file.filename}': {', '.join(invalid_departments)}. Valid departments are: {', '.join(VALID_DEPARTMENTS)}."
+                        logging.info(f"Returning error message: {error_message}")
+                        return (
+                            render_template(
+                                "multiple_employees.html", error=error_message
+                            ),
+                            400,
+                        )
+
+                    invalid_salaries = df[~df["salary"].isin(VALID_SALARIES)][
+                        "salary"
+                    ].unique()
+                    if len(invalid_salaries) > 0:
+                        error_message = f"Invalid salary values in file '{file.filename}': {', '.join(invalid_salaries)}. Valid salaries are: {', '.join(VALID_SALARIES)}."
+                        logging.info(f"Returning error message: {error_message}")
+                        return (
+                            render_template(
+                                "multiple_employees.html", error=error_message
+                            ),
+                            400,
+                        )
+
+                    dataframes.append(df)
+                    filenames.append(file.filename)
+                except pd.errors.EmptyDataError:
+                    error_message = (
+                        f"File {file.filename} is empty or improperly formatted."
+                    )
+                    logging.info(f"Returning error message: {error_message}")
+                    return (
+                        render_template("multiple_employees.html", error=error_message),
+                        400,
+                    )
+                except pd.errors.ParserError:
+                    error_message = f"File '{file.filename}' is not a valid CSV."
+                    logging.info(f"Returning error message: {error_message}")
+                    return (
+                        render_template("multiple_employees.html", error=error_message),
+                        400,
+                    )
+                except Exception as e:
+                    error_message = f"Error reading file {file.filename}."
+                    logging.error(f"Error reading file {file.filename}: {str(e)}")
+                    logging.info(f"Returning error message: {error_message}")
+                    return (
+                        render_template("multiple_employees.html", error=error_message),
+                        400,
+                    )
 
             predict_pipeline = PredictPipeline()
             predictions_list, turnover_rates = predict_pipeline.predict_from_csv(
                 dataframes
             )
-
             turnover_rates_dict = {
                 filename: rate for filename, rate in zip(filenames, turnover_rates)
             }
             predictions = {}
+
+            for i, filename in enumerate(filenames):
+                if "probability" not in predictions_list[i].columns:
+                    raise ValueError(
+                        f"Column 'probability' not found in predictions for {filename}"
+                    )
+                predictions[filename] = predictions_list[i].to_dict("records")
+
+                csv_storage[filename] = predictions_list[i].to_csv(index=False)
+                logging.info(f"Stored CSV data for file: {filename}")
 
             return render_template(
                 "multiple_employees.html",
@@ -187,11 +382,16 @@ def upload_csv():
             )
 
     except Exception as e:
+        error_message = "An error occurred while processing the files."
         logging.error(f"Error occurred: {str(e)}")
         logging.error(traceback.format_exc())
-        return render_template(
-            "multiple_employees.html",
-            error="An error occurred while processing the files. Please check the logs for details.",
+        logging.info(f"Returning error message: {error_message}")
+        return (
+            render_template(
+                "multiple_employees.html",
+                error=error_message,
+            ),
+            400,
         )
 
 
@@ -220,7 +420,7 @@ def download_csv():
         logging.error(traceback.format_exc())
         return render_template(
             "multiple_employees.html",
-            error="An error occurred while downloading the file. Please check the logs for details.",
+            error="An error occurred while downloading the file.",
         )
 
 
