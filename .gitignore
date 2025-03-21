@@ -6,3 +6,4 @@ application.txt
 templates/home.txt
 src/pipeline/predict_pipeline.txt
 src/components/data_transformation.txt
+pccube/
