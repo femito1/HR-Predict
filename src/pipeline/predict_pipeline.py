@@ -1,17 +1,8 @@
 import sys
 import pandas as pd
-import os
 import numpy as np
 from src.pipeline.pytorch_gradient_boosting import PyTorchGradientBoosting
-from sklearn.preprocessing import OneHotEncoder, StandardScaler
-from sklearn.calibration import CalibratedClassifierCV, calibration_curve
-from sklearn.base import BaseEstimator, ClassifierMixin
-import joblib
 from src.exception import CustomException
-from src.utils import load_object
-
-
-print(os.getcwd())
 
 
 class PredictPipeline:
@@ -78,23 +69,48 @@ class PredictPipeline:
             numeric_cols = ['satisfaction_level', 'last_evaluation', 'number_project', 'average_montly_hours', 'time_spend_company', 'Work_accident', 'promotion_last_5years']
             cat_cols =  ['department_IT', 'department_RandD', 'department_accounting', 'department_hr', 'department_management', 'department_marketing', 'department_product_mng', 'department_sales', 'department_support', 'department_technical', 'salary_high', 'salary_low', 'salary_medium']
             
-            # to handle missing values, I am filling with the median for numeric columns 
-            # and the mode for categorical columns
+
             if df_processed.isnull().sum().sum() > 0:
                 print(f"Warning: Found {df_processed.isnull().sum().sum()} missing values. Filling with appropriate values.")
                 
-                for col in numeric_cols:
-                    if df_processed[col].isnull().sum() > 0:
-                        df_processed[col] = df_processed[col].fillna(df_processed[col].median())
+                cols = df_processed.columns
+                means = {'satisfaction_level': 0.6,
+                        'last_evaluation': 0.7,
+                        'number_project': 3.8,
+                        'average_montly_hours': 201.1,
+                        'time_spend_company': 3.5,
+                        'Work_accident': 0.1,
+                        'promotion_last_5years': 0.0}
+    
+                modes = {'department_IT': 0.0,
+                        'department_RandD': 0.0,
+                        'department_accounting': 0.0,
+                        'department_hr': 0.0,
+                        'department_management': 0.0,
+                        'department_marketing': 0.0,
+                        'department_product_mng': 0.0,
+                        'department_sales': 1.0,
+                        'department_support': 0.0,
+                        'department_technical': 0.0,
+                        'salary_high': 0.0,
+                        'salary_low': 1.0,
+                        'salary_medium': 0.0}
                 
+                for col in numeric_cols:
+                    if col not in cols:
+                        df_processed[col] = means[col]
+                    elif df_processed[col].isnull().sum() > 0:
+                        df_processed[col] = df_processed[col].fillna(means[col])
+                            
                 for col in cat_cols:
-                    if df_processed[col].isnull().sum() > 0:
-                        df_processed[col] = df_processed[col].fillna(df_processed[col].mode()[0])
+                    if col not in cols:
+                        df_processed[col] = modes[col]
+                    elif df_processed[col].isnull().sum() > 0:
+                        df_processed[col] = df_processed[col].fillna(modes[col])
             
             df_encoded = pd.get_dummies(df_processed)
             categorical_cols =  ['department_IT', 'department_RandD', 'department_accounting', 'department_hr', 'department_management', 'department_marketing', 'department_product_mng', 'department_sales', 'department_support', 'department_technical', 'salary_high', 'salary_low', 'salary_medium']
             feature_names = numeric_cols + categorical_cols
-            
             
             if feature_names:
                 missing_features = [feat for feat in feature_names if feat not in df_encoded.columns]
@@ -244,8 +260,6 @@ class PredictPipeline:
             suggestions.append(sugs)
 
         return suggestions
-
-
 class CustomData:
     def __init__(self, satisfaction_level, last_evaluation, number_project, average_montly_hours, 
                  time_spend_company, Work_accident, promotion_last_5years, department, salary):
@@ -278,7 +292,3 @@ class CustomData:
 
         except Exception as e:
             raise CustomException(e,sys)
-
-
-
-
