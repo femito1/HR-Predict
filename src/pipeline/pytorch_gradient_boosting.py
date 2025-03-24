@@ -3,8 +3,12 @@ import numpy as np
 import pandas as pd
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, log_loss, balanced_accuracy_score
-from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
+from sklearn.calibration import CalibratedClassifierCV, calibration_curve
+from sklearn.base import BaseEstimator, ClassifierMixin
+import joblib
+import os
+import pickle
 
 
 class PyTorchGradientBoosting:
@@ -327,7 +331,7 @@ class PyTorchGradientBoosting:
     
     def predict(self, X, threshold=0.5):
         """Predict class labels"""
-        probabilities = self.predict_proba(X)
+        probabilities = self.predict_proba_calibrated(X)
         return (probabilities >= threshold).to(torch.int)
     
     def plot_learning_curve(self):
@@ -460,7 +464,7 @@ class PyTorchGradientBoosting:
             return fold_scores, fold_models
         return fold_scores
 
-    def evaluate(self, X, y, threshold=0.5):
+    def evaluate(self, X, y, threshold=0.5, calibrate=False):
         """
         Evaluate model performance with multiple metrics
         
@@ -478,7 +482,10 @@ class PyTorchGradientBoosting:
         metrics : dict
             Dictionary of performance metrics
         """
-        y_pred_proba = self.predict_proba(X).cpu().numpy()
+        if calibrate:
+            y_pred_proba = self.predict_proba_calibrated(X).cpu().numpy()
+        else:
+            y_pred_proba = self.predict_proba(X).cpu().numpy()
         y_pred = (y_pred_proba >= threshold).astype(int)
         y_true = y.cpu().numpy() if isinstance(y, torch.Tensor) else y
         
@@ -569,28 +576,186 @@ class PyTorchGradientBoosting:
         plt.grid(True, alpha=0.3)
         plt.show()
 
+    def calibrate_probabilities(self, X_cal, y_cal, method='isotonic'):
+        """
+        Calibrate the probability outputs using a held-out calibration set
+        
+        Parameters:
+        -----------
+        X_cal : array-like
+            Calibration features
+        y_cal : array-like
+            Calibration target values
+        method : str, default='isotonic'
+            The method to use for calibration. Can be 'sigmoid' (Platt scaling) 
+            or 'isotonic' (non-parametric isotonic regression)
+            
+        Returns:
+        --------
+        self : object
+            Returns self
+        """
+        
+        # Create a scikit-learn compatible wrapper for our model
+        # Convert inputs to numpy if they're tensors
+        X_cal_np = X_cal.cpu().numpy() if isinstance(X_cal, torch.Tensor) else X_cal
+        y_cal_np = y_cal.cpu().numpy() if isinstance(y_cal, torch.Tensor) else y_cal
+        
+        # Ensure y is binary and consists of integers
+        y_cal_np = y_cal_np.astype(int)
+        
+        # Create a direct calibration map instead of using CalibratedClassifierCV
+        if method == 'isotonic':
+            from sklearn.isotonic import IsotonicRegression
+            self.calibrator = IsotonicRegression(out_of_bounds='clip')
+            
+            # Get raw predictions on calibration data
+            X_tensor = torch.tensor(X_cal_np, dtype=torch.float32)
+            raw_probs = self.predict_proba(X_tensor).cpu().numpy()
+            
+            # Fit isotonic regression directly
+            self.calibrator.fit(raw_probs, y_cal_np)
+            self.is_calibrated = True
+            self.calibration_method = 'isotonic'
+            
+        elif method == 'sigmoid':
+            from sklearn.linear_model import LogisticRegression
+            self.calibrator = LogisticRegression(C=1.0, solver='lbfgs')
+            
+            # Get raw predictions on calibration data
+            X_tensor = torch.tensor(X_cal_np, dtype=torch.float32)
+            raw_probs = self.predict_proba(X_tensor).cpu().numpy()
+            
+            # Reshape to 2D array expected by LogisticRegression
+            raw_probs = raw_probs.reshape(-1, 1)
+            
+            # Fit logistic regression directly
+            self.calibrator.fit(raw_probs, y_cal_np)
+            self.is_calibrated = True
+            self.calibration_method = 'sigmoid'
+        
+        return self
+
+    def predict_proba_calibrated(self, X):
+        """
+        Get calibrated probability predictions
+        
+        Parameters:
+        -----------
+        X : array-like
+            Features
+            
+        Returns:
+        --------
+        probabilities : ndarray
+            Calibrated probabilities for the positive class
+        """
+        if not hasattr(self, 'calibrator') or not hasattr(self, 'is_calibrated'):
+            raise ValueError("Model is not calibrated. Call calibrate_probabilities first.")
+        
+        # Convert to numpy if tensor
+        X_np = X.cpu().numpy() if isinstance(X, torch.Tensor) else X
+        
+        # Get raw probabilities from our model
+        X_tensor = torch.tensor(X_np, dtype=torch.float32)
+        raw_probs = self.predict_proba(X_tensor).cpu().numpy()
+        
+        # Apply calibration based on method
+        if self.calibration_method == 'isotonic':
+            # Isotonic regression takes raw probabilities directly
+            calibrated_probs = self.calibrator.transform(raw_probs)
+            
+        elif self.calibration_method == 'sigmoid':
+            # Logistic regression needs reshaped input
+            raw_probs = raw_probs.reshape(-1, 1)
+            calibrated_probs = self.calibrator.predict_proba(raw_probs)[:, 1]
+        
+        return torch.tensor(calibrated_probs, dtype=torch.float32)
+
+    def plot_calibration_curve(self, X, y, n_bins=10, figsize=(10, 8)):
+        """
+        Plot the calibration curve to visualize probability calibration
+        
+        Parameters:
+        -----------
+        X : array-like
+            Features
+        y : array-like
+            True target values
+        n_bins : int
+            Number of bins for calibration curve
+        figsize : tuple
+            Figure size
+        """
+        if not hasattr(self, 'is_calibrated'):
+            uncalibrated_probs = self.predict_proba(X).cpu().numpy()
+            label_uncalibrated = 'Uncalibrated'
+            
+            plt.figure(figsize=figsize)
+            prob_true, prob_pred = calibration_curve(y, uncalibrated_probs, n_bins=n_bins)
+            plt.plot(prob_pred, prob_true, marker='o', linewidth=1, label=label_uncalibrated)
+            
+        else:
+            # Get both uncalibrated and calibrated probabilities
+            uncalibrated_probs = self.predict_proba(X).cpu().numpy()
+            calibrated_probs = self.predict_proba_calibrated(X)
+            
+            plt.figure(figsize=figsize)
+            
+            # Plot uncalibrated curve
+            prob_true_uncal, prob_pred_uncal = calibration_curve(y, uncalibrated_probs, n_bins=n_bins)
+            plt.plot(prob_pred_uncal, prob_true_uncal, marker='o', linewidth=1, label='Uncalibrated')
+            
+            # Plot calibrated curve
+            prob_true_cal, prob_pred_cal = calibration_curve(y, calibrated_probs, n_bins=n_bins)
+            plt.plot(prob_pred_cal, prob_true_cal, marker='o', linewidth=1, label='Calibrated')
+        
+        # Plot diagonal perfect calibration line
+        plt.plot([0, 1], [0, 1], linestyle='--', color='gray', label='Perfectly calibrated')
+        
+        plt.xlabel('Mean predicted probability')
+        plt.ylabel('Fraction of positives')
+        plt.title('Calibration Curve')
+        plt.legend(loc='best')
+        plt.grid(True, alpha=0.3)
+        plt.show()
+
     def save_model(self, filepath):
         """
-        Save model to file
+        Save model to file including calibration
         
         Parameters:
         -----------
         filepath : str
             Path to save the model to
         """
-        import pickle
-        with open(filepath, 'wb') as f:
-            pickle.dump(self, f)
-        
-        if filepath.endswith('.pkl'):
-            print(f"Model saved to {filepath}")
+        # We need to temporarily remove the calibrator as it may 
+        # contain unpicklable objects
+        if hasattr(self, 'calibrator'):
+            calibrator = self.calibrator
+            delattr(self, 'calibrator')
+            is_calibrated = self.is_calibrated
+            
+            # Save the main model
+            with open(filepath, 'wb') as f:
+                pickle.dump(self, f)
+            
+            # Save the calibrator separately
+            calibrator_path = filepath + '.calibrator'
+            joblib.dump(calibrator, calibrator_path)
+            
+            # Restore calibrator to model
+            self.calibrator = calibrator
+            self.is_calibrated = is_calibrated
         else:
-            print(f"Model saved to {filepath}.pkl")
+            # Regular save
+            with open(filepath, 'wb') as f:
+                pickle.dump(self, f)
 
     @classmethod
     def load_model(cls, filepath):
         """
-        Load model from file
+        Load model from file including calibration if available
         
         Parameters:
         -----------
@@ -602,12 +767,14 @@ class PyTorchGradientBoosting:
         model : PyTorchGradientBoosting
             Loaded model
         """
-        import pickle
         with open(filepath, 'rb') as f:
             model = pickle.load(f)
         
-        if not isinstance(model, cls):
-            raise TypeError(f"Loaded object is not a {cls.__name__} instance")
+        # Check if calibrator exists and load it
+        calibrator_path = filepath + '.calibrator'
+        if os.path.exists(calibrator_path):
+            model.calibrator = joblib.load(calibrator_path)
+            model.is_calibrated = True
         
         return model
 

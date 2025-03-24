@@ -1,12 +1,12 @@
 import sys
 import pandas as pd
-import xgboost as xgb
-import pickle
 import os
 import numpy as np
 from src.pipeline.pytorch_gradient_boosting import PyTorchGradientBoosting
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
-
+from sklearn.calibration import CalibratedClassifierCV, calibration_curve
+from sklearn.base import BaseEstimator, ClassifierMixin
+import joblib
 from src.exception import CustomException
 from src.utils import load_object
 
@@ -23,29 +23,10 @@ class PredictPipeline:
         try:
             print("in predict_pipeline.py file")
             model_path = 'artifacts/xgboost.pth'
-            # preprocesor_path = 'artifacts/preprocessor.pkl'
-
-            
-            
             model = PyTorchGradientBoosting.load_model(model_path)
             self.model = model
-            # preprocessor = load_object(file_path=preprocesor_path)
-
-            #ohe_feature_names = load_object("artifacts/ohe_feature_names.pkl")  # Expected OHE columns
-
             cat_features = ["department", "salary"]
-
-
             ohe_df = pd.get_dummies(features[cat_features])
-            
-            # Ensure all expected one-hot encoded columns exist
-            #for col in ohe_feature_names:
-            #    if col not in ohe_df.columns:
-            #        ohe_df[col] = 0  # Add missing columns with default value 0
-
-            # Reorder columns to match training
-            #ohe_df = ohe_df[ohe_feature_names]
-
             num_features = ["satisfaction_level", "last_evaluation", "number_project",
                             "average_montly_hours", "time_spend_company", "Work_accident", "promotion_last_5years"]
             features_processed = pd.concat([features[num_features], ohe_df], axis=1)
@@ -57,10 +38,8 @@ class PredictPipeline:
             for feature in feature_names:
                 if feature not in features_processed.columns:
                     features_processed[feature] = 0
-
             features_processed = features_processed[feature_names]
-
-            predictions = model.predict_proba(np.array(features_processed, dtype=np.float32))
+            predictions = model.predict_proba_calibrated(np.array(features_processed, dtype=np.float32))
 
             return predictions
         
@@ -135,7 +114,7 @@ class PredictPipeline:
             dmatrix = np.array(df_encoded, dtype=np.float32)
 
             
-            probabilities = xgb_model.predict_proba(dmatrix)
+            probabilities = xgb_model.predict_proba_calibrated(dmatrix)
             
             threshold = 0.55
             predictions = np.array(probabilities > threshold, dtype=np.int32)
@@ -250,7 +229,7 @@ class PredictPipeline:
             dmatrix = np.array(df_encoded, dtype=np.float32)
 
             
-            probabilities = xgb_model.predict_proba(dmatrix)
+            probabilities = xgb_model.predict_proba_calibrated(dmatrix)
         
             probabilities = np.array(probabilities, dtype=np.float32)
             y_pred = probabilities.mean()
