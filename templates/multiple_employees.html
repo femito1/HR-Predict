@@ -14,10 +14,40 @@
 
     {% if error %}
     <div class="error-message">
-        <p>{{ error }}</p>
+        <h3>File Validation Issues</h3>
+        <div class="error-content">
+            {{ error|safe }}
+        </div>
+        <div class="error-help">
+            <p>Need help?</p>
+            <ul>
+                <li>Make sure your CSV file has all required columns</li>
+                <li>If you're having encoding issues, try saving your file as UTF-8 in your spreadsheet software</li>
+                <li><a href="/download_template" class="template-link">Download a correct template</a> to see the
+                    expected format</li>
+            </ul>
+        </div>
     </div>
     {% endif %}
 
+    {% if warnings %}
+    <div class="warning-message">
+        <h3>Data Validation Warnings</h3>
+        {% for filename, file_warnings in warnings.items() %}
+        <div class="file-warning">
+            <h4>{{ filename }}</h4>
+            <ul>
+                {% for warning in file_warnings %}
+                <li>{{ warning }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endfor %}
+        <p>Predictions were made using default values for missing data.</p>
+    </div>
+    {% endif %}
+
+    {% if not turnover_rates %}
     <p class="description">
         Enter employee data to analyze potential turnover rate.<br>
         Upload a file that includes multiple employees' details.<br>
@@ -30,6 +60,7 @@
             <label for="csv_file">Select file(s) to upload or drag and drop</label>
             <input type="file" id="csv_file" name="csv_file" accept=".csv" multiple required>
             <small>Supported file types: CSV (Max 5 files)</small>
+            <small>Supported encodings: UTF-8</small>
         </div>
 
         <div id="selected-files" class="selected-files">
@@ -43,6 +74,7 @@
 
         <button type="submit" class="predict-button">Predict Turnover Rate</button>
     </form>
+    {% endif %}
 
     {% if turnover_rates is defined %}
     <div class="prediction-result">
@@ -79,36 +111,89 @@
                     <table>
                         <thead>
                             <tr>
-                                <th>Satisfaction Level</th>
-                                <th>Last Evaluation</th>
-                                <th>Number of Projects</th>
-                                <th>Average Monthly Hours</th>
-                                <th>Years Spent in Company</th>
-                                <th>Work Accident</th>
-                                <th>Promoted in Last 5 Years</th>
-                                <th>Department</th>
-                                <th>Salary</th>
-                                <th>Probability</th>
+                                <th data-sort-type="integer" data-column="0">ID <span class="sort-icon">↕</span></th>
+                                {% if predictions[filename][0].satisfaction_level is defined %}
+                                <th data-sort-type="float" data-column="1">Satisfaction Level <span
+                                        class="sort-icon">↕</span></th>
+                                {% endif %}
+                                {% if predictions[filename][0].last_evaluation is defined %}
+                                <th data-sort-type="float" data-column="2">Last Evaluation <span
+                                        class="sort-icon">↕</span></th>
+                                {% endif %}
+                                {% if predictions[filename][0].number_project is defined %}
+                                <th data-sort-type="integer" data-column="3">Number of Projects <span
+                                        class="sort-icon">↕</span></th>
+                                {% endif %}
+                                {% if predictions[filename][0].average_montly_hours is defined %}
+                                <th data-sort-type="integer" data-column="4">Average Monthly Hours <span
+                                        class="sort-icon">↕</span></th>
+                                {% endif %}
+                                {% if predictions[filename][0].time_spend_company is defined %}
+                                <th data-sort-type="integer" data-column="5">Years Spent in Company <span
+                                        class="sort-icon">↕</span></th>
+                                {% endif %}
+                                {% if predictions[filename][0].Work_accident is defined %}
+                                <th data-sort-type="integer" data-column="6">Work Accident <span
+                                        class="sort-icon">↕</span></th>
+                                {% endif %}
+                                {% if predictions[filename][0].promotion_last_5years is defined %}
+                                <th data-sort-type="integer" data-column="7">Promoted in Last 5 Years <span
+                                        class="sort-icon">↕</span></th>
+                                {% endif %}
+                                {% if predictions[filename][0].department is defined %}
+                                <th data-sort-type="string" data-column="8">Department <span class="sort-icon">↕</span>
+                                </th>
+                                {% endif %}
+                                {% if predictions[filename][0].salary is defined %}
+                                <th data-sort-type="salary" data-column="9">Salary <span class="sort-icon">↕</span></th>
+                                {% endif %}
+                                <th data-sort-type="percentage" data-column="10">Probability <span
+                                        class="sort-icon">↕</span></th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for row in predictions[filename] %}
                             <tr
                                 class="{% if row.probability * 100 <= 33 %}low-risk-table{% elif row.probability * 100 <= 66 %}medium-risk-table{% else %}high-risk-table{% endif %}">
+                                <td>{{ row.id if row.id is defined else loop.index }}</td>
+                                {% if row.satisfaction_level is defined %}
                                 <td>{{ "%.2f"|format(row.satisfaction_level) }}</td>
+                                {% endif %}
+                                {% if row.last_evaluation is defined %}
                                 <td>{{ "%.2f"|format(row.last_evaluation) }}</td>
+                                {% endif %}
+                                {% if row.number_project is defined %}
                                 <td>{{ row.number_project }}</td>
+                                {% endif %}
+                                {% if row.average_montly_hours is defined %}
                                 <td>{{ row.average_montly_hours }}</td>
+                                {% endif %}
+                                {% if row.time_spend_company is defined %}
                                 <td>{{ row.time_spend_company }}</td>
-                                <td>{{ row.Work_accident }}</td>
-                                <td>{{ row.promotion_last_5years }}</td>
+                                {% endif %}
+                                {% if row.Work_accident is defined %}
+                                <td data-sort-value="{{ row.Work_accident }}">{{ "Yes" if row.Work_accident == 1 else
+                                    "No" }}</td>
+                                {% endif %}
+                                {% if row.promotion_last_5years is defined %}
+                                <td data-sort-value="{{ row.promotion_last_5years }}">{{ "Yes" if
+                                    row.promotion_last_5years == 1 else "No" }}</td>
+                                {% endif %}
+                                {% if row.department is defined %}
                                 <td>{{ row.department }}</td>
+                                {% endif %}
+                                {% if row.salary is defined %}
                                 <td>{{ row.salary }}</td>
+                                {% endif %}
                                 <td>{{ "%.2f"|format(row.probability * 100) }}%</td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
+                </div>
+                <div id="sort-spinner-{{ filename }}" class="sort-spinner" style="display: none;">
+                    <div class="spinner"></div>
+                    <p>Sorting data... Please wait.</p>
                 </div>
             </div>
             {% if data.suggestions %}
@@ -124,39 +209,63 @@
             {% endif %}
         </div>
         {% endfor %}
+
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="/multiple-employees" class="new-prediction-button">New Prediction</a>
+        </div>
     </div>
     {% endif %}
 </div>
 
 <script>
+    const tableSortDirections = {};
+    // Threshold for row count to determine when to show spinner during sorting
+    const SPINNER_THRESHOLD = 100; 
+
+    // Showing the loading spinner
     function showLoadingSpinner() {
         document.getElementById('loading-spinner').style.display = 'flex';
     }
 
+    // Hidding the loading spinner
     function hideLoadingSpinner() {
         document.getElementById('loading-spinner').style.display = 'none';
     }
 
-    function handleFormSubmit() {
-        // Show the loading spinner
-        showLoadingSpinner();
+    // Showing the sort spinner
+    function showSortSpinner(filename) {
+        const spinner = document.getElementById(`sort-spinner-${filename}`);
+        if (spinner) {
+            spinner.style.display = 'flex';
+        }
+    }
 
-        // Optionally, disable the submit button to prevent multiple submissions
+    // Hidding the sort spinner
+    function hideSortSpinner(filename) {
+        const spinner = document.getElementById(`sort-spinner-${filename}`);
+        if (spinner) {
+            spinner.style.display = 'none';
+        }
+    }
+    // Function to submit form
+    function handleFormSubmit() {
+        showLoadingSpinner();
         const submitButton = document.querySelector('.predict-button');
         submitButton.disabled = true;
-
-        // Submit the form
         document.getElementById('upload-form').submit();
     }
 
+    // Clicking on Show Table, for larger ones
+    // there is a need of spinner
     function showTableWithSpinner(filename) {
-        showLoadingSpinner(); // Show the spinner
+        showLoadingSpinner(); 
         setTimeout(() => {
             toggleTable(filename);
             hideLoadingSpinner();
         }, 500);
     }
 
+    // Toogle the show table button
     function toggleTable(filename) {
         const table = document.getElementById(`table-${filename}`);
         const button = document.getElementById(`toggle-button-${filename}`);
@@ -164,59 +273,181 @@
         if (table.style.display === 'none') {
             table.style.display = 'block';
             button.textContent = 'Hide Table';
+
+            if (!tableSortDirections[filename]) {
+                tableSortDirections[filename] = {};
+                const headers = table.querySelectorAll('th');
+                headers.forEach(header => {
+                    const column = header.getAttribute('data-column');
+                    if (column) {
+                        tableSortDirections[filename][column] = 'none';
+                    }
+                });
+
+                initTableSorting(filename);
+            }
         } else {
             table.style.display = 'none';
             button.textContent = 'Show Table';
         }
     }
 
+    // Initialize table sorting, after clicking on the column name
+    function initTableSorting(filename) {
+        const table = document.getElementById(`table-${filename}`);
+        const headers = table.querySelectorAll('th');
+
+        headers.forEach(header => {
+            header.style.cursor = 'pointer';
+            header.addEventListener('click', function () {
+                const column = this.getAttribute('data-column');
+                const sortType = this.getAttribute('data-sort-type');
+
+                const tbody = table.querySelector('tbody');
+                const rowCount = tbody.querySelectorAll('tr').length;
+
+                if (rowCount > SPINNER_THRESHOLD) {
+                    showSortSpinner(filename);
+                    setTimeout(() => {
+                        sortTable(filename, parseInt(column), sortType);
+                        hideSortSpinner(filename);
+                    }, 10);
+                } else {
+                    sortTable(filename, parseInt(column), sortType);
+                }
+            });
+        });
+    }
+
+    // Function for sorting the table by the value
+    function sortTable(filename, columnIndex, sortType) {
+        const table = document.getElementById(`table-${filename}`);
+        const tbody = table.querySelector('tbody');
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+
+        if (!tableSortDirections[filename]) {
+            tableSortDirections[filename] = {};
+        }
+
+        if (!tableSortDirections[filename][columnIndex]) {
+            tableSortDirections[filename][columnIndex] = 'none';
+        }
+
+        let currentDirection = tableSortDirections[filename][columnIndex];
+        let newDirection;
+
+        if (currentDirection === 'none') {
+            newDirection = 'asc';
+        } else if (currentDirection === 'asc') {
+            newDirection = 'desc';
+        } else {
+            newDirection = 'asc';
+        }
+
+        tableSortDirections[filename][columnIndex] = newDirection;
+
+        const headers = table.querySelectorAll('th');
+        headers.forEach(header => {
+            const sortIcon = header.querySelector('.sort-icon');
+            sortIcon.textContent = '↕';
+        });
+
+        const currentHeader = headers[columnIndex];
+        const sortIcon = currentHeader.querySelector('.sort-icon');
+        sortIcon.textContent = newDirection === 'asc' ? '↑' : '↓';
+
+        rows.sort((rowA, rowB) => {
+            const cellA = rowA.querySelectorAll('td')[columnIndex];
+            const cellB = rowB.querySelectorAll('td')[columnIndex];
+
+            let valueA = cellA.getAttribute('data-sort-value') || cellA.textContent.trim().toLowerCase();
+            let valueB = cellB.getAttribute('data-sort-value') || cellB.textContent.trim().toLowerCase();
+
+            if (sortType === 'salary') {
+                const salaryOrder = { 'low': 0, 'medium': 1, 'high': 2 };
+                valueA = salaryOrder[valueA] !== undefined ? salaryOrder[valueA] : -1;
+                valueB = salaryOrder[valueB] !== undefined ? salaryOrder[valueB] : -1;
+                return newDirection === 'asc' ? valueA - valueB : valueB - valueA;
+            } else if (sortType === 'integer') {
+                valueA = parseInt(valueA, 10);
+                valueB = parseInt(valueB, 10);
+            } else if (sortType === 'float') {
+                valueA = parseFloat(valueA);
+                valueB = parseFloat(valueB);
+            } else if (sortType === 'percentage') {
+                valueA = parseFloat(valueA.replace('%', ''));
+                valueB = parseFloat(valueB.replace('%', ''));
+            }
+
+            let comparison;
+            if (sortType === 'string') {
+                comparison = valueA.localeCompare(valueB);
+            } else {
+                comparison = valueA - valueB;
+            }
+            return newDirection === 'asc' ? comparison : -comparison;
+        });
+
+        while (tbody.firstChild) {
+            tbody.removeChild(tbody.firstChild);
+        }
+
+        rows.forEach(row => tbody.appendChild(row));
+    }
+
     const fileUpload = document.getElementById('file-upload');
     const fileInput = document.getElementById('csv_file');
 
-    fileUpload.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        fileUpload.classList.add('dragover');
-    });
+    // There was a bug if there was no listeners, so only if the 
+    // fileUpload is active add the EventListeners
+    if (fileUpload && fileInput) {
+        fileUpload.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            fileUpload.classList.add('dragover');
+        });
 
-    fileUpload.addEventListener('dragleave', () => {
-        fileUpload.classList.remove('dragover');
-    });
+        fileUpload.addEventListener('dragleave', () => {
+            fileUpload.classList.remove('dragover');
+        });
 
-    fileUpload.addEventListener('drop', (e) => {
-        e.preventDefault();
-        fileUpload.classList.remove('dragover');
+        fileUpload.addEventListener('drop', (e) => {
+            e.preventDefault();
+            fileUpload.classList.remove('dragover');
 
-        const newFiles = e.dataTransfer.files;
-        const existingFiles = fileInput.files;
-        const updatedFiles = new DataTransfer();
+            const newFiles = e.dataTransfer.files;
+            const existingFiles = fileInput.files;
+            const updatedFiles = new DataTransfer();
 
-        for (let i = 0; i < existingFiles.length; i++) {
-            updatedFiles.items.add(existingFiles[i]);
-        }
+            for (let i = 0; i < existingFiles.length; i++) {
+                updatedFiles.items.add(existingFiles[i]);
+            }
 
-        for (let i = 0; i < newFiles.length; i++) {
-            updatedFiles.items.add(newFiles[i]);
-        }
+            for (let i = 0; i < newFiles.length; i++) {
+                updatedFiles.items.add(newFiles[i]);
+            }
 
-        fileInput.files = updatedFiles.files;
-        updateSelectedFiles();
-    });
+            fileInput.files = updatedFiles.files;
+            updateSelectedFiles();
+        });
 
-    fileInput.addEventListener('change', () => {
-        updateSelectedFiles();
-    });
+        fileInput.addEventListener('change', () => {
+            updateSelectedFiles();
+        });
 
-    function updateSelectedFiles() {
-        const selectedFiles = document.getElementById('selected-files');
-        selectedFiles.innerHTML = '';
+        function updateSelectedFiles() {
+            const selectedFiles = document.getElementById('selected-files');
+            selectedFiles.innerHTML = '';
 
-        if (fileInput.files.length > 0) {
-            for (let i = 0; i < fileInput.files.length; i++) {
-                selectedFiles.innerHTML += `<p>File selected: <strong>${fileInput.files[i].name}</strong> <span class="remove-file" onclick="removeFile('${fileInput.files[i].name}')">X</span></p>`;
+            if (fileInput.files.length > 0) {
+                for (let i = 0; i < fileInput.files.length; i++) {
+                    const fileName = fileInput.files[i].name;
+                    selectedFiles.innerHTML += `<p>File selected: <strong>${fileName}</strong> <span class="remove-file" onclick="removeFile('${fileName}')">X</span></p>`;
+                }
             }
         }
     }
 
+    // Remove file from fileInput
     function removeFile(filename) {
         const dataTransfer = new DataTransfer();
         for (let i = 0; i < fileInput.files.length; i++) {
@@ -228,6 +459,7 @@
         updateSelectedFiles();
     }
 
+    // Filtering the table with low, medium and high risk
     function filterTable(filename) {
         const lowRiskChecked = document.getElementById(`low-risk-checkbox-${filename}`).checked;
         const mediumRiskChecked = document.getElementById(`medium-risk-checkbox-${filename}`).checked;
@@ -254,13 +486,12 @@
         }
     }
 
+    // Function to find the first sentence, used for bolding the first one
     function formatSuggestions() {
         const suggestionItems = document.querySelectorAll('.recommendations li');
-
         suggestionItems.forEach((li) => {
             const text = li.textContent;
-            const firstSentenceEnd = text.indexOf('.'); // Find the first dot
-
+            const firstSentenceEnd = text.indexOf('.');
             if (firstSentenceEnd !== -1) {
                 const firstSentence = text.slice(0, firstSentenceEnd);
                 const restOfText = text.slice(firstSentenceEnd).trim();

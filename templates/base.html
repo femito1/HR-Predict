@@ -1,45 +1,69 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}hrPredict{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}"> 
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
     <link rel="icon" href="{{ url_for('static', filename='img/logo_smaller.svg') }}" type="image/svg+xml">
 </head>
+
 <body>
     <div class="container">
         <div class="sidebar">
             <div class="logo">
-                <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="Logo">
+                <a href="/">
+                    <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="Logo">
+                </a>
             </div>
             <nav>
                 <ul>
                     <li>
                         <a href="/" class="{% if request.endpoint == 'home' or request.path == '/' %}active{% endif %}">
-                            <img src="{{ url_for('static', filename=('img/home_green.svg' if request.endpoint == 'home' or request.path == '/' else 'img/home_gray.svg')) }}" alt="Home" class="icon">
-                            <span class="{% if request.endpoint == 'home' or request.path == '/' %}active-text{% endif %}">Home</span>
+                            <img src="{{ url_for('static', filename=('img/home_green.svg' if request.endpoint == 'home' or request.path == '/' else 'img/home_gray.svg')) }}"
+                                alt="Home" class="icon">
+                            <span
+                                class="{% if request.endpoint == 'home' or request.path == '/' %}active-text{% endif %}">Home</span>
                         </a>
                     </li>
                     <li>
-                        <a href="/single-employee" class="{% if request.endpoint == 'single_employee' or request.path == '/predict-single' %}active{% endif %}">
-                            <img src="{{ url_for('static', filename=('img/plus_green.svg' if request.endpoint == 'single_employee' or request.path == '/predict-single' else 'img/plus_gray.svg')) }}" alt="Single Employee" class="icon">
-                            <span class="{% if request.endpoint == 'single_employee' or request.path == '/predict-single'%}active-text{% endif %}">Single Employee</span>
+                        <a href="/single-employee"
+                            class="{% if request.endpoint == 'single_employee' or request.path == '/predict-single' %}active{% endif %}">
+                            <img src="{{ url_for('static', filename=('img/plus_green.svg' if request.endpoint == 'single_employee' or request.path == '/predict-single' else 'img/plus_gray.svg')) }}"
+                                alt="Single Employee" class="icon">
+                            <span
+                                class="{% if request.endpoint == 'single_employee' or request.path == '/predict-single'%}active-text{% endif %}">Single
+                                Employee</span>
                         </a>
                     </li>
                     <li>
-                        <a href="/multiple-employees" class="{% if request.endpoint == 'multiple_employees' or request.path == '/predict_from_csv' %}active{% endif %}">
-                            <img src="{{ url_for('static', filename=('img/file-plus_green.svg' if request.endpoint == 'multiple_employees' or request.path == '/predict_from_csv' else 'img/file-plus_gray.svg')) }}" alt="Multiple Employees" class="icon">
-                            <span class="{% if request.endpoint == 'multiple_employees' or request.path == '/predict_from_csv' %}active-text{% endif %}">Multiple Employees</span>
+                        <a href="/multiple-employees"
+                            class="{% if request.endpoint == 'multiple_employees' or request.path == '/predict_from_csv' %}active{% endif %}">
+                            <img src="{{ url_for('static', filename=('img/file-plus_green.svg' if request.endpoint == 'multiple_employees' or request.path == '/predict_from_csv' else 'img/file-plus_gray.svg')) }}"
+                                alt="Multiple Employees" class="icon">
+                            <span
+                                class="{% if request.endpoint == 'multiple_employees' or request.path == '/predict_from_csv' %}active-text{% endif %}">Multiple
+                                Employees</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('user_guide') }}"
+                            class="{% if request.endpoint == 'user_guide' %}active{% endif %}">
+                            <img src="{{ url_for('static', filename=('img/user_guide_green.svg' if request.endpoint == 'user_guide' else 'img/user_guide_gray.svg')) }}"
+                                alt="User Guide" class="icon">
+                            <span class="{% if request.endpoint == 'user_guide' %}active-text{% endif %}">User
+                                Guide</span>
                         </a>
                     </li>
                 </ul>
             </nav>
         </div>
-        
+
         <div class="main-content">
             {% block content %}{% endblock %}
         </div>
     </div>
 </body>
+
 </html>

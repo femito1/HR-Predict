@@ -80,7 +80,7 @@ class TestPredictMultipleEndpoint(unittest.TestCase):
         }
         response = self.app.post('/predict_from_csv', data=data, content_type='multipart/form-data')
         self.assertEqual(response.status_code, 400)
-        self.assertIn(b"Non-numerical value found in column satisfaction_level in file invalid_content.csv.", response.data)
+        self.assertIn(b"Non-numerical value found in column \'satisfaction_level\' in file \'invalid_content.csv\'.", response.data)
 
     def test_large_csv_file(self):
         # Test with a large CSV file
