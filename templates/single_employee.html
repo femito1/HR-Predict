@@ -6,13 +6,6 @@
 <h1 class="title">Single Employee Retention Prediction</h1>
 <hr class="header-line">
 <div class="single-employee-container">
-
-    {% if not results %}
-    <p class="description">Enter employee data to analyze retention risk</p>
-    {% else %}
-    <p class="description">Entered employee data</p>
-    {% endif %}
-
     {% if errors and errors.general %}
     <div class="error-message general-error">
         {{ errors.general }}
@@ -27,14 +20,33 @@
     </div>
     {% endif %}
 
+    {% if warnings %}
+    <div class="warning-message">
+        <h3>Data Validation Warnings</h3>
+        <ul>
+            {% for field, message in warnings.items() %}
+            <li>{{ message }}</li>
+            {% endfor %}
+        </ul>
+        <p>Predictions were made using default values for missing data.</p>
+    </div>
+    {% endif %}
+    {% if not results %}
+    <p class="description">Enter employee data to analyze retention risk</p>
+    {% else %}
+    <p class="description">Entered employee data</p>
+    {% endif %}
+
+
+
     <form action="/predict-single" method="POST" class="form-container">
         <!-- First Row -->
         <div class="form-row">
             <div class="form-group">
                 <label for="department">Department</label>
                 {% if not results %}
-                <select id="department" name="department" required>
-                    <option value="">Select Department</option>
+                <select id="department" name="department">
+                    <option value="" selected>Select Department (Default: Sales)</option>
                     <option value="sales" {% if form_data and form_data.department=='sales' %}selected{% endif %}>Sales
                     </option>
                     <option value="accounting" {% if form_data and form_data.department=='accounting' %}selected{% endif
@@ -65,8 +77,8 @@
             <div class="form-group">
                 <label for="salary">Salary</label>
                 {% if not results %}
-                <select id="salary" name="salary" required>
-                    <option value="">Select Salary</option>
+                <select id="salary" name="salary">
+                    <option value="" selected>Select Salary (Default: Medium)</option>
                     <option value="low" {% if form_data and form_data.salary=='low' %}selected{% endif %}>Low</option>
                     <option value="medium" {% if form_data and form_data.salary=='medium' %}selected{% endif %}>Medium
                     </option>
@@ -88,7 +100,7 @@
                 <label for="satisfaction_level">Satisfaction Level</label>
                 {% if not results %}
                 <input type="number" id="satisfaction_level" name="satisfaction_level" step="0.01" min="0" max="1"
-                    value="{{ form_data.satisfaction_level if form_data }}" required>
+                    value="{{ form_data.satisfaction_level if form_data }}" required placeholder="Range: 0 - 1">
                 {% if errors and errors.satisfaction_level %}
                 <span class="error-message">{{ errors.satisfaction_level }}</span>
                 {% endif %}
@@ -100,8 +112,8 @@
             <div class="form-group">
                 <label for="last_evaluation">Latest Evaluation Score</label>
                 {% if not results %}
-                <input type="number" id="last_evaluation" name="last_evaluation" step="0.01" v
-                    value="{{ form_data.last_evaluation if form_data }}" required>
+                <input type="number" id="last_evaluation" name="last_evaluation" step="0.01" min="0" max="1"
+                    value="{{ form_data.last_evaluation if form_data }}" required placeholder="Range: 0 - 1">
                 {% if errors and errors.last_evaluation %}
                 <span class="error-message">{{ errors.last_evaluation }}</span>
                 {% endif %}
@@ -116,8 +128,8 @@
             <div class="form-group">
                 <label for="number_project">Number of Projects</label>
                 {% if not results %}
-                <input type="number" id="number_project" name="number_project" min="0"
-                    value="{{ form_data.number_project if form_data }}" required>
+                <input type="number" id="number_project" name="number_project" min="0" max="20"
+                    value="{{ form_data.number_project if form_data }}" required placeholder="Range: 0 - 20">
                 {% if errors and errors.number_project %}
                 <span class="error-message">{{ errors.number_project }}</span>
                 {% endif %}
@@ -129,8 +141,9 @@
             <div class="form-group">
                 <label for="average_montly_hours">Average Monthly Hours</label>
                 {% if not results %}
-                <input type="number" id="average_montly_hours" name="average_montly_hours" min="0"
-                    value="{{ form_data.average_montly_hours if form_data }}" required>
+                <input type="number" id="average_montly_hours" name="average_montly_hours" min="80" max="320"
+                    value="{{ form_data.average_montly_hours if form_data }}"
+                    placeholder="Range: 80 - 320 (Default: 200)">
                 {% if errors and errors.average_montly_hours %}
                 <span class="error-message">{{ errors.average_montly_hours }}</span>
                 {% endif %}
@@ -147,17 +160,20 @@
                 {% if not results %}
                 <div class="button-group">
                     <input type="radio" id="promotion_yes" name="promotion_last_5years" value="1" {% if form_data and
-                        form_data.promotion_last_5years=='1' %}checked{% endif %} required>
+                        form_data.promotion_last_5years=='1' %}checked{% endif %}>
                     <label for="promotion_yes" class="toggle-button">Yes</label>
                     <input type="radio" id="promotion_no" name="promotion_last_5years" value="0" {% if form_data and
-                        form_data.promotion_last_5years=='0' %}checked{% endif %} required>
-                    <label for="promotion_no" class="toggle-button">No</label>
+                        form_data.promotion_last_5years=='0' %}checked{% endif %}>
+                    <label for="promotion_no" class="toggle-button" id="promotion_no_label">No (Default)</label>
+                    <input type="hidden" name="promotion_last_5years_default" value="0">
                 </div>
                 {% if errors and errors.promotion_last_5years %}
                 <span class="error-message">{{ errors.promotion_last_5years }}</span>
                 {% endif %}
                 {% else %}
-                <input type="text" value="{{ 'Yes' if request.form.promotion_last_5years == '1' else 'No' }}" readonly>
+                <input type="text"
+                    value="{{ 'Yes' if request.form.promotion_last_5years == '1' else ('No' if request.form.promotion_last_5years == '0' else '') }}"
+                    readonly>
                 {% endif %}
             </div>
 
@@ -166,17 +182,20 @@
                 {% if not results %}
                 <div class="button-group">
                     <input type="radio" id="work_accident_yes" name="Work_accident" value="1" {% if form_data and
-                        form_data.Work_accident=='1' %}checked{% endif %} required>
+                        form_data.Work_accident=='1' %}checked{% endif %}>
                     <label for="work_accident_yes" class="toggle-button">Yes</label>
                     <input type="radio" id="work_accident_no" name="Work_accident" value="0" {% if form_data and
-                        form_data.Work_accident=='0' %}checked{% endif %} required>
-                    <label for="work_accident_no" class="toggle-button">No</label>
+                        form_data.Work_accident=='0' %}checked{% endif %}>
+                    <label for="work_accident_no" class="toggle-button" id="work_accident_no_label">No (Default)</label>
+                    <input type="hidden" name="Work_accident_default" value="0">
                 </div>
                 {% if errors and errors.Work_accident %}
                 <span class="error-message">{{ errors.Work_accident }}</span>
                 {% endif %}
                 {% else %}
-                <input type="text" value="{{ 'Yes' if request.form.Work_accident == '1' else 'No' }}" readonly>
+                <input type="text"
+                    value="{{ 'Yes' if request.form.Work_accident == '1' else ('No' if request.form.Work_accident == '0' else '') }}"
+                    readonly>
                 {% endif %}
             </div>
         </div>
@@ -187,7 +206,7 @@
                 <label for="time_spend_company">Years Spent in Company</label>
                 {% if not results %}
                 <input type="number" id="time_spend_company" name="time_spend_company" min="0" max="50"
-                    value="{{ form_data.time_spend_company if form_data }}" required>
+                    value="{{ form_data.time_spend_company if form_data }}" required placeholder="Range: 0 - 50">
                 {% if errors and errors.time_spend_company %}
                 <span class="error-message">{{ errors.time_spend_company }}</span>
                 {% endif %}
@@ -198,6 +217,10 @@
         </div>
 
         {% if not results %}
+        <div class="form-note">
+            <p>* Required fields</p>
+            <p>Empty fields will use default values</p>
+        </div>
         <button type="submit" class="predict-button">Predict Retention</button>
         {% endif %}
     </form>
@@ -228,34 +251,104 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('[required]').forEach(el => {
+            const label = document.querySelector(`label[for="${el.id}"]`);
+            if (label) {
+                label.setAttribute('data-required', '*');
+            }
+        });
+        const promotionYes = document.getElementById('promotion_yes');
+        const promotionNo = document.getElementById('promotion_no');
+        const promotionNoLabel = document.getElementById('promotion_no_label');
+        const workAccidentYes = document.getElementById('work_accident_yes');
+        const workAccidentNo = document.getElementById('work_accident_no');
+        const workAccidentNoLabel = document.getElementById('work_accident_no_label');
         const departmentSelect = document.getElementById('department');
         const salarySelect = document.getElementById('salary');
 
-        function removeDefaultOption(selectElement) {
-            const defaultOption = selectElement.querySelector('option[value=""]');
-            if (defaultOption) {
-                defaultOption.remove();
+        // Labels for work accident and promotion last 5 years
+        // The idea is to be No (default) when nothing is selected
+        // After it is selected it should be just No
+        function updateRadioLabels() {
+            if (promotionYes.checked) {
+                promotionNoLabel.textContent = 'No';
+            } else if (promotionNo.checked) {
+                promotionNoLabel.textContent = 'No';
+            } else {
+                promotionNoLabel.textContent = 'No (Default)';
+            }
+
+            if (workAccidentYes.checked) {
+                workAccidentNoLabel.textContent = 'No';
+            } else if (workAccidentNo.checked) {
+                workAccidentNoLabel.textContent = 'No';
+            } else {
+                workAccidentNoLabel.textContent = 'No (Default)';
             }
         }
 
+        function handleSelectChange(selectElement) {
+            if (selectElement.value !== '') {
+                const defaultOption = selectElement.querySelector('option[value=""]');
+                if (defaultOption) {
+                    defaultOption.remove();
+                }
+            }
+        }
+
+        updateRadioLabels();
+
+        if (promotionYes && promotionNo) {
+            promotionYes.addEventListener('change', updateRadioLabels);
+            promotionNo.addEventListener('change', updateRadioLabels);
+        }
+
+        if (workAccidentYes && workAccidentNo) {
+            workAccidentYes.addEventListener('change', updateRadioLabels);
+            workAccidentNo.addEventListener('change', updateRadioLabels);
+        }
+
         if (departmentSelect) {
-            departmentSelect.addEventListener('focus', function () {
-                removeDefaultOption(this);
+            departmentSelect.addEventListener('change', function () {
+                handleSelectChange(this);
+                this.blur();
             });
+
+            if (departmentSelect.value !== '') {
+                handleSelectChange(departmentSelect);
+            }
         }
 
         if (salarySelect) {
-            salarySelect.addEventListener('focus', function () {
-                removeDefaultOption(this);
+            salarySelect.addEventListener('change', function () {
+                handleSelectChange(this);
+                this.blur();
             });
+
+            if (salarySelect.value !== '') {
+                handleSelectChange(salarySelect);
+            }
+        }
+
+        document.querySelectorAll('input[type="radio"]').forEach(radio => {
+            radio.checked = false;
+        });
+    });
+
+    document.querySelectorAll('[required]').forEach(el => {
+        const label = document.querySelector(`label[for="${el.id}"]`);
+        if (label) {
+            label.setAttribute('data-required', '*');
         }
     });
+    
+    // Function to find the first sentence, used for bolding the first one
     function formatSuggestions() {
         const suggestionItems = document.querySelectorAll('.recommendations li');
 
         suggestionItems.forEach((li) => {
             const text = li.textContent;
-            const firstSentenceEnd = text.indexOf('.'); // Find the first dot
+            const firstSentenceEnd = text.indexOf('.');
 
             if (firstSentenceEnd !== -1) {
                 const firstSentence = text.slice(0, firstSentenceEnd);
@@ -265,6 +358,8 @@
         });
     }
 
-    window.onload = formatSuggestions;
+    window.onload = function () {
+        formatSuggestions();
+    };
 </script>
 {% endblock %}
