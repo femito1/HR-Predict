@@ -78,7 +78,7 @@
                 <label for="salary">Salary</label>
                 {% if not results %}
                 <select id="salary" name="salary">
-                    <option value="" selected>Select Salary (Default: Medium)</option>
+                    <option value="" selected>Select Salary (Default: Low)</option>
                     <option value="low" {% if form_data and form_data.salary=='low' %}selected{% endif %}>Low</option>
                     <option value="medium" {% if form_data and form_data.salary=='medium' %}selected{% endif %}>Medium
                     </option>

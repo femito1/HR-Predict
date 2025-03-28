@@ -54,7 +54,7 @@ def validate_csv_file(df, filename):
         "Work_accident": 0,
         "promotion_last_5years": 0,
         "department": "sales",
-        "salary": "medium"
+        "salary": "low"
     }
 
     missing_mandatory = [col for col in mandatory_columns if col not in df.columns]
@@ -86,6 +86,44 @@ def validate_csv_file(df, filename):
         "Work_accident": [0, 1],
         "promotion_last_5years": [0, 1]
     }
+
+    for col, default_val in optional_columns.items():
+        if col not in df.columns:
+            df[col] = default_val
+            warnings.append(f"Added missing column '{col}' with default value {default_val}")
+
+    for col in optional_columns:
+        if col in df.columns and df[col].isna().any():
+            default_val = optional_columns[col]
+            na_count = df[col].isna().sum()
+            df[col].fillna(default_val, inplace=True)
+            warnings.append(f"Filled {na_count} missing values in '{col}' with default value {default_val}")
+
+    if 'department' in df.columns:
+        df['department'] = df['department'].astype(str).str.strip().str.lower()
+        invalid_dept = ~df['department'].isin([d.lower() for d in VALID_DEPARTMENTS])
+        if invalid_dept.any():
+            bad_rows = df[invalid_dept]['id'].tolist()
+            for row_id in bad_rows:
+                if row_id not in validation_issues:
+                    validation_issues[row_id] = []
+                invalid_value = df.loc[df['id'] == row_id, 'department'].values[0] if not df[df['id'] == row_id].empty else "unknown"
+                validation_issues[row_id].append(
+                    f"Invalid department '{invalid_value}' (valid options: {', '.join(VALID_DEPARTMENTS)})"
+                )
+
+    if 'salary' in df.columns:
+        df['salary'] = df['salary'].astype(str).str.strip().str.lower()
+        invalid_salary = ~df['salary'].isin([s.lower() for s in VALID_SALARIES])
+        if invalid_salary.any():
+            bad_rows = df[invalid_salary]['id'].tolist()
+            for row_id in bad_rows:
+                if row_id not in validation_issues:
+                    validation_issues[row_id] = []
+                invalid_value = df.loc[df['id'] == row_id, 'salary'].values[0] if not df[df['id'] == row_id].empty else "unknown"
+                validation_issues[row_id].append(
+                    f"Invalid salary '{invalid_value}' (valid options: {', '.join(VALID_SALARIES)})"
+                )
 
     for field, valid_range in numerical_fields.items():
         if field in df.columns:
@@ -127,32 +165,6 @@ def validate_csv_file(df, filename):
                             f"Invalid value {invalid_value} in column '{field}' (must be one of: {', '.join(map(str, valid_range))})"
                         )
 
-    if 'department' in df.columns:
-        df['department'] = df['department'].astype(str).str.strip().str.lower()
-        invalid_dept = ~df['department'].isin([d.lower() for d in VALID_DEPARTMENTS])
-        if invalid_dept.any():
-            bad_rows = df[invalid_dept]['id'].tolist()
-            for row_id in bad_rows:
-                if row_id not in validation_issues:
-                    validation_issues[row_id] = []
-                invalid_value = df.loc[df['id'] == row_id, 'department'].values[0] if not df[df['id'] == row_id].empty else "unknown"
-                validation_issues[row_id].append(
-                    f"Invalid department '{invalid_value}' (valid options: {', '.join(VALID_DEPARTMENTS)})"
-                )
-
-    if 'salary' in df.columns:
-        df['salary'] = df['salary'].astype(str).str.strip().str.lower()
-        invalid_salary = ~df['salary'].isin([s.lower() for s in VALID_SALARIES])
-        if invalid_salary.any():
-            bad_rows = df[invalid_salary]['id'].tolist()
-            for row_id in bad_rows:
-                if row_id not in validation_issues:
-                    validation_issues[row_id] = []
-                invalid_value = df.loc[df['id'] == row_id, 'salary'].values[0] if not df[df['id'] == row_id].empty else "unknown"
-                validation_issues[row_id].append(
-                    f"Invalid salary '{invalid_value}' (valid options: {', '.join(VALID_SALARIES)})"
-                )
-
     valid_rows = ~df['id'].isin(validation_issues.keys())
     df = df[valid_rows].copy()
 
@@ -163,11 +175,6 @@ def validate_csv_file(df, filename):
         if len(validation_issues) > 10:
             warning_messages.append(f"...and {len(validation_issues)-10} more rows with issues")
         warnings.extend(warning_messages)
-
-    for col, default_val in optional_columns.items():
-        if col not in df.columns:
-            df[col] = default_val
-            warnings.append(f"Added missing column '{col}' with default value {default_val}")
 
     required_columns = ['id'] + mandatory_columns + list(optional_columns.keys())
     df = df[[col for col in required_columns if col in df.columns]]
@@ -213,7 +220,7 @@ def predict_datapoint():
         "Work_accident": "0",
         "promotion_last_5years": "0",
         "department": "sales",
-        "salary": "medium"
+        "salary": "low"
     }
 
     for field, default_value in optional_fields.items():
