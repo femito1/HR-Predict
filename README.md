@@ -1,4 +1,4 @@
-# US01: EMPLOYEE RETENTION PREDICTIVE MODEL
+# EMPLOYEE RETENTION PREDICTIVE MODEL
 
 ## Overview  
 This project provides a web-based application to predict employee turnover and the likelihood of an employee leaving the company based on historical data. Users can input employee details manually for a **single prediction** or upload a **CSV file** to process multiple employee records at once. The goal is to help companies optimize resource planning and improve employee retention through predictive analytics.  
