@@ -14,10 +14,10 @@ This project provides a web-based application to predict employee turnover and t
 
 ### **Step 1: Clone the Repository**  
 ```bash
-git clone http://gitlab.pccube.com:8081/gitlab/codingcamp/aicodingcamp/examples/ai-camp-2/employee-retention-predictive-model.git 
+git clone https://github.com/femito1/HR-Predict.git
 ```
 ```bash
-cd employee-retention-predictive-model
+cd HR-Predict
 ```
 
 ### **Step 2: Create a Virtual Environment (Optional but Recommended)**
@@ -25,8 +25,8 @@ cd employee-retention-predictive-model
 To create a virtual environment using Conda, run the following command:
 
 ```bash
-conda create --name employee_retention_app python=3.12 -y
-conda activate employee_retention_app
+conda create --name HR-Predict python=3.12 -y
+conda activate hr_predict_app
 ```
 
 
